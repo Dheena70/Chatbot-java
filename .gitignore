@@ -1,0 +1,19 @@
+# Build output
+out/
+bin/
+*.class
+
+# Sensitive files / API Keys (NEVER commit your real API keys)
+gemini_key.txt
+.env
+
+# Runtime logs
+data/chat_log.csv
+*.log
+
+# IDE & OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
