@@ -113,8 +113,8 @@ public class ChatbotServer {
             String reply = result.reply;
             String intent = result.intent;
 
-            // Route to AI when local matching found nothing, or found only a weak match.
-            boolean needsAi = ("fallback".equals(result.intent) || !ChatEngine.isConfident(result))
+            // Route to AI when local matching found nothing, weak match, or for jokes for infinite variety.
+            boolean needsAi = ("fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
                     && aiClient.isConfigured();
 
             if (needsAi) {
