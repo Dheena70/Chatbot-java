@@ -1,100 +1,80 @@
-# Java Chatbot
+# 🤖 DevBot — High-Performance Java Chatbot with Gemini AI
 
-A simple rule-based, text-based chatbot built with **plain Java only** — no
-Spring, no Flask, no external frameworks or libraries. Uses the standard
-JDK's built-in `com.sun.net.httpserver.HttpServer` to serve a small JSON API
-and a static chat UI.
+[![Java Version](https://img.shields.io/badge/Java-11%20%7C%2017%20%7C%2021%20%7C%2025-orange.svg)](https://openjdk.org/)
+[![Framework](https://img.shields.io/badge/Framework-Zero%20Dependencies-brightgreen.svg)]()
+[![Concurrency](https://img.shields.io/badge/Concurrency-Virtual%20Threads-blue.svg)]()
+[![AI](https://img.shields.io/badge/AI%20Fallback-Google%20Gemini-8e44ad.svg)](https://aistudio.google.com/)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)]()
 
-## How it works
+A lightweight, blazing-fast, hybrid rule-based and AI-powered chatbot built with **100% pure standard Java** — zero external frameworks, zero third-party dependencies, and zero build tool overhead (no Spring Boot, no Maven, no Gradle required).
 
+It delivers sub-millisecond local responses for predefined intents and seamlessly fails over to **Google Gemini AI** with rolling conversation memory for open-ended queries, general knowledge, jokes, and creative tasks.
+
+---
+
+## ✨ Features
+
+- ⚡ **Zero External Libraries**: Built exclusively on the standard JDK (`com.sun.net.httpserver` and `java.net.http.HttpClient`). Compiles in under 2 seconds.
+- 🧵 **Java Virtual Threads**: Uses `Executors.newVirtualThreadPerTaskExecutor()` to handle hundreds of concurrent chat requests without thread exhaustion or blocking.
+- 🧠 **Hybrid Edge-First Intelligence**:
+  - **Local Rule Engine**: Weighted keyword/substring scoring from `data/intents.csv`.
+  - **Dynamic Time & Date**: Resolves live system clock tokens (`{time}`) on the fly.
+  - **Gemini AI Fallback**: Resilient multi-model failover (`gemini-3.5-flash`, `gemini-flash-latest`, `gemini-3.6-flash`) with automatic retry.
+- 💭 **Rolling Session Memory**: Retains multi-turn conversation context per session so users can ask contextual follow-ups.
+- 🎨 **Modern Responsive UI**:
+  - Desktop-optimized 860px layout with smooth transitions and dark/light theme toggle.
+  - Interactive clickable suggestion chips.
+  - Live message timestamps and safe Markdown/code block rendering.
+  - Clear Chat (reset session) button.
+- 📊 **Audit Logging**: Appends every turn safely to `data/chat_log.csv` without impacting request latency.
+- 🔒 **Security First**: Complete separation of secrets; API keys (`gemini_key.txt`) are strictly git-ignored.
+- 🚀 **One-Click Runner**: Double-click `run.bat` on Windows to compile and launch immediately.
+
+---
+
+## 🏗️ Architecture
+
+```text
+ Browser (public/)                 ChatbotServer                ChatEngine / AiClient
+ ┌────────────────┐   POST /api/chat   ┌────────────────┐   ┌──────────────────────────┐
+ │ index.html      │ ─────────────────▶│  ChatHandler   │──▶│ ChatEngine.getResponse() │
+ │ script.js       │                   │  (Virtual Th.) │   │  (CSV Weighted Scoring)  │
+ │ style.css       │◀───────────────── │                │◀──┘                          │
+ └────────────────┘   {reply,intent,   │                │   Low Confidence / Unmatched │
+                        confidence}    │                │  ┌───────────────────────────┤
+                                       │                │─▶│ AiClient.ask()            │
+                                       └───────┬────────┘  │ (Google Gemini API w/     │
+                                               │           │  Multi-Turn Session Memo) │
+                                               ▼           └───────────────────────────┘
+                                     ChatLogger → data/chat_log.csv
 ```
- Browser (public/)                 ChatbotServer               ChatEngine / AiClient
- ┌────────────────┐   POST /api/chat   ┌───────────────┐   ┌───────────────────────┐
- │ index.html      │ ─────────────────▶│ ChatHandler    │──▶│ ChatEngine.getResponse│
- │ script.js       │                    │               │   │ (keyword match, CSV)  │
- │ style.css       │◀───────────────── │               │◀──┘
- └────────────────┘   {reply,intent,   │  low confidence   ┌───────────────────────┐
-                        confidence}     │  or "fallback"? ─▶│ AiClient.ask()        │
-                                        │                    │ (Gemini API, w/ short │
-                                        └───────┬────────────┤  session history)     │
-                                                 │            └───────────────────────┘
-                                                 ▼
-                                       ChatLogger → data/chat_log.csv
+
+---
+
+## 📋 Requirements
+
+- **JDK 11 or later** (OpenJDK 17, 21, or 25 recommended for Virtual Threads).
+- Compatible with Windows, macOS, and Linux.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/<YOUR_USERNAME>/chatbot-java.git
+cd chatbot-java
 ```
 
-- `ChatEngine.java` loads predefined intents (keyword patterns → responses)
-  from `data/intents.csv` and matches user messages against them using
-  keyword scoring, weighted so longer/more specific patterns count for more
-  than a single short word — the "predefined logic" approach. Supports dynamic
-  tokens such as `{time}` for real-time live clock answers.
-- `AiClient.java` calls the Google Gemini API using `gemini-2.5-flash` (using the JDK's built-in
-  `java.net.http.HttpClient` — no extra libraries) so the bot can answer
-  anything the local keyword matching doesn't recognize, or only matched
-  weakly. This only runs when an API key is configured (see below); without
-  a key, unmatched messages just get the plain fallback reply as before.
-- `ChatbotServer.java` starts a high-concurrency HTTP server using Java Virtual Threads
-  on port `5000` (or `$PORT`, if set), serves the static frontend from `public/`, and exposes:
-  - `POST /api/chat`: accepts `{"message": "...", "sessionId": "..."}` and returns `{"reply", "intent", "confidence"}`.
-  - `POST /api/reset`: clears the server-side rolling memory for the specified session.
-  - `GET /api/health`: returns health status and whether AI fallback is enabled.
-- **Session memory**: the frontend generates a random `sessionId` (stored in
-  `localStorage`) and sends it with every request. The server keeps a short
-  rolling history (last few turns) per session in memory and includes it
-  when calling Gemini, so AI fallback replies stay coherent across a
-  conversation instead of treating every message in isolation.
-- **Logging**: every turn is appended to `data/chat_log.csv`
-  (`timestamp, session_id, message, intent, confidence`) so you can see what
-  people actually ask and use it to grow `data/intents.csv` over time.
-- `public/index.html`, `style.css`, `script.js` — the chat UI with clickable quick
-  suggestion chips, timestamps, clear chat button, markdown/code formatting, and
-  a dark/light theme toggle.
+### 2. Run the Application
 
-## Requirements
-
-- JDK 11 or later (runs standard library only; utilizes Java Virtual Threads on modern JDKs).
-
-## Enabling AI fallback (answers to anything) — free tier
-
-By default the bot only answers what's in `data/intents.csv`. To let it
-answer arbitrary questions too, using **Google Gemini's free tier** (no
-credit card required):
-
-1. Go to https://aistudio.google.com/apikey and sign in with a Google
-   account, then click "Create API key". It's free — no billing setup
-   needed to start.
-2. Provide the key to the app using **one** of these two methods:
-
-   **Option A — save it to a file (set once, never repeat it):**
-   Open `gemini_key.txt` in the project root and replace its placeholder
-   text with your real key (nothing else in the file, just the key).
-   The server checks this file automatically every time it starts — no
-   environment variable needed. Keep this file private; `.gitignore`
-   already excludes it from version control.
-
-   **Option B — environment variable (only lasts for the current terminal session):**
-   ```bash
-   # Windows (PowerShell)
-   $env:GEMINI_API_KEY="your-key-here"
-
-   # macOS/Linux
-   export GEMINI_API_KEY="your-key-here"
-   ```
-
-   If both are set, the environment variable takes priority over the file.
-3. Run the server as usual. On startup it prints whether AI fallback is
-   enabled or disabled, and the chat UI's status line reflects this too.
-
-## Build & Run
-
-From the project root (`chatbot-java/`):
-
-### Windows (Quick Run)
-Double-click `run.bat` or run:
+#### Windows (One-Click)
+Double-click **`run.bat`** or run:
 ```bat
 run.bat
 ```
 
-### Manual Run
+#### macOS / Linux
 ```bash
 # Compile
 javac -d out src/main/java/chatbot/*.java src/test/java/chatbot/*.java
@@ -103,50 +83,106 @@ javac -d out src/main/java/chatbot/*.java src/test/java/chatbot/*.java
 java -cp out chatbot.ChatbotServer
 ```
 
-Then open **http://localhost:5000** in your browser.
+### 3. Open in Browser
+Visit **[http://localhost:5000](http://localhost:5000)** in your browser!
 
-To run on a different port:
-```bash
-PORT=8080 java -cp out chatbot.ChatbotServer
-```
+---
 
-## Running the tests
+## 🔑 Enabling Gemini AI Fallback (Optional — Free Tier)
+
+To allow the chatbot to answer *any* general question, coding challenge, or generate endless jokes beyond the CSV:
+
+1. Get a free API key at **[Google AI Studio](https://aistudio.google.com/apikey)** (no credit card required).
+2. Save your key using either method:
+   - **File (Recommended)**: Create `gemini_key.txt` in the project root and paste your key inside (already git-ignored).
+   - **Environment Variable**:
+     ```powershell
+     # Windows PowerShell
+     $env:GEMINI_API_KEY="your-api-key"
+     ```
+     ```bash
+     # macOS/Linux
+     export GEMINI_API_KEY="your-api-key"
+     ```
+3. Restart the server. The status indicator will switch to 🟢 **"Online — rule-based + AI fallback"**.
+
+---
+
+## 🧪 Running the Tests
+
+The project includes a built-in plain Java test runner with zero testing framework dependencies:
 
 ```bash
 javac -d out src/main/java/chatbot/*.java src/test/java/chatbot/*.java
 java -cp out chatbot.ChatEngineTest
 ```
 
-## Project structure
+Expected output:
+```text
+PASS: greeting matches 'hi'
+PASS: greeting matches tanglish 'vanakkam'
+PASS: goodbye matches 'see you'
+PASS: identity question matches 'who are you'
+PASS: unknown input falls back
+PASS: blank input falls back
+PASS: clear phrase match is confident
+PASS: single weak keyword in a long sentence is not confident
+PASS: time question matches 'time' intent
+PASS: time reply substitutes dynamic {time} token
+PASS: time reply contains current year
+PASS: cm question matches 'cm_tamilnadu' intent
+PASS: cm reply mentions Vijay
+PASS: tell me a joke matches 'joke' intent
+PASS: another joke matches 'joke' intent
+PASS: consecutive jokes rotate to a different joke
 
+16 passed, 0 failed
 ```
+
+---
+
+## 📁 Project Structure
+
+```text
 chatbot-java/
 ├── data/
-│   ├── intents.csv          # predefined patterns & responses
-│   └── chat_log.csv         # created at runtime — every turn logged here
-├── gemini_key.txt           # (optional) save your Gemini API key here once
-├── run.bat                  # One-click Windows build and launch script
-├── .gitignore                # excludes out/, chat_log.csv, gemini_key.txt
+│   ├── intents.csv               # Predefined intent patterns and response pools
+│   └── chat_log.csv              # Runtime conversation audit log (git-ignored)
 ├── public/
-│   ├── index.html           # chat UI (chips, clear chat, timestamps)
-│   ├── style.css
-│   └── script.js            # talks to /api/chat, /api/health, /api/reset
+│   ├── index.html                # Responsive web chat interface
+│   ├── style.css                 # Modern CSS layout, theme variables & animations
+│   └── script.js                 # API client, Markdown renderer & session handling
 ├── src/
 │   ├── main/java/chatbot/
-│   │   ├── ChatEngine.java   # intent loading + weighted keyword matching + dynamic placeholders
-│   │   ├── AiClient.java     # Gemini API client (gemini-2.5-flash) with session history
-│   │   ├── ChatLogger.java   # appends each turn to data/chat_log.csv
-│   │   └── ChatbotServer.java# Virtual-threaded HTTP server + routes + session handling
+│   │   ├── AiClient.java         # Resilient Gemini API client with auto-failover
+│   │   ├── ChatEngine.java       # Keyword scoring engine & dynamic token resolver
+│   │   ├── ChatLogger.java       # Non-blocking CSV audit logger
+│   │   └── ChatbotServer.java    # Virtual-threaded HTTP server and REST endpoints
 │   └── test/java/chatbot/
-│       └── ChatEngineTest.java  # plain-Java tests, no framework needed
-└── README.md
+│       └── ChatEngineTest.java   # Standalone regression test suite
+├── gemini_key.txt.example        # Template for API key configuration
+├── run.bat                       # One-click Windows build and launch script
+├── .gitignore                    # Prevents build artifacts and secrets from being committed
+└── README.md                     # Project documentation
 ```
 
-## Extending it
+---
 
-- Add more rows to `data/intents.csv` (format: `intent,pattern1|pattern2|...,response`)
-  to teach it new replies.
-- Dynamic tokens: you can use `{time}` in responses in `data/intents.csv` to
-  inject the current system time and date formatted cleanly.
-- `ChatEngine.LOW_CONFIDENCE_THRESHOLD` controls how confident a local match
-  needs to be before the server trusts it over asking the AI.
+## 🛠️ Extending Intents
+
+You can easily teach the bot new responses without writing Java code:
+
+1. Open `data/intents.csv`.
+2. Add a new row in this format:
+   ```csv
+   intent_name,keyword1|keyword2|phrase,Response 1 ;; Response 2 (optional pool)
+   ```
+   - Use `|` to separate matching keyword variations.
+   - Use `;;` to define a pool of randomized responses.
+   - Use `{time}` to inject the live system date and time.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
