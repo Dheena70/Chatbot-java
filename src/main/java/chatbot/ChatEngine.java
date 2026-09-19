@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 
 /**
  * ChatEngine
@@ -122,9 +123,9 @@ public class ChatEngine {
         for (Intent intent : intents) {
             double score = 0;
             for (String pattern : intent.patterns) {
-                if (normalized.contains(pattern)) {
+                if (matchesPattern(normalized, pattern)) {
                     // Weight longer / more specific patterns higher than single short words,
-                    // so e.g. "good morning" outweighs a lone "hi" substring match elsewhere.
+                    // so e.g. "good morning" outweighs a lone "hi" match elsewhere.
                     int patternWordCount = Math.max(1, pattern.split("\\s+").length);
                     score += patternWordCount;
                 }
@@ -159,5 +160,16 @@ public class ChatEngine {
     /** True if the given result is confident enough to trust without asking the AI too. */
     public static boolean isConfident(ChatResult result) {
         return !"fallback".equals(result.intent) && result.confidence >= LOW_CONFIDENCE_THRESHOLD;
+    }
+
+    /**
+     * Matches pattern against normalized text respecting word boundaries.
+     * Prevents short patterns like "hi" or "rain" from matching inside longer words
+     * like "which", "this", or "train".
+     */
+    public static boolean matchesPattern(String text, String pattern) {
+        if (text == null || pattern == null || pattern.isEmpty()) return false;
+        String regex = "(?<![a-z0-9])" + Pattern.quote(pattern) + "(?![a-z0-9])";
+        return Pattern.compile(regex).matcher(text).find();
     }
 }

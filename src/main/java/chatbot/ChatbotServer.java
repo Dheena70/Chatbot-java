@@ -66,7 +66,21 @@ public class ChatbotServer {
             }
         }
 
-        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        HttpServer server = null;
+        int targetPort = port;
+        for (int p = targetPort; p <= targetPort + 5; p++) {
+            try {
+                server = HttpServer.create(new InetSocketAddress(p), 0);
+                port = p;
+                break;
+            } catch (java.net.BindException e) {
+                System.err.println("Port " + p + " is in use, trying port " + (p + 1) + "...");
+            }
+        }
+        if (server == null) {
+            throw new java.net.BindException("Could not bind to any port between " + targetPort + " and " + (targetPort + 5));
+        }
+
         server.createContext("/api/chat", new ChatHandler());
         server.createContext("/api/reset", new ResetHandler());
         server.createContext("/api/health", new HealthHandler());
@@ -84,60 +98,69 @@ public class ChatbotServer {
         server.setExecutor(executor);
         server.start();
 
-        System.out.println("Chatbot server running at http://localhost:" + port);
+        System.out.println("=================================================");
+        System.out.println("  Chatbot server running at http://localhost:" + port);
+        System.out.println("=================================================");
     }
 
     /** Handles POST /api/chat — accepts {"message": "..."} and returns {"reply","intent","confidence"}. */
     static class ChatHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-                handleOptions(exchange);
-                return;
-            }
-            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                sendJson(exchange, 405, "{\"error\":\"Method not allowed\"}", null);
-                return;
-            }
-
-            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            String message = extractJsonStringField(body, "message");
-            String sessionId = getOrCreateSessionId(exchange, body);
-
-            if (message == null || message.isBlank()) {
-                sendJson(exchange, 400, "{\"error\":\"Message cannot be empty.\"}", sessionId);
-                return;
-            }
-
-            ChatEngine.ChatResult result = engine.getResponse(message);
-            String reply = result.reply;
-            String intent = result.intent;
-
-            // Route to AI when local matching found nothing, weak match, or for jokes for infinite variety.
-            boolean needsAi = ("fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
-                    && aiClient.isConfigured();
-
-            if (needsAi) {
-                try {
-                    List<AiClient.Turn> history = List.copyOf(
-                            sessionHistory.getOrDefault(sessionId, new ArrayDeque<>()));
-                    reply = aiClient.ask(message, history);
-                    intent = "ai";
-                } catch (Exception e) {
-                    System.err.println("AI fallback failed: " + e.getMessage());
-                    // Keep the original canned/local reply on failure.
+            try {
+                if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    handleOptions(exchange);
+                    return;
                 }
+                if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    sendJson(exchange, 405, "{\"error\":\"Method not allowed\"}", null);
+                    return;
+                }
+
+                String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                String message = extractJsonStringField(body, "message");
+                String sessionId = getOrCreateSessionId(exchange, body);
+
+                if (message == null || message.isBlank()) {
+                    sendJson(exchange, 400, "{\"error\":\"Message cannot be empty.\"}", sessionId);
+                    return;
+                }
+
+                ChatEngine.ChatResult result = engine.getResponse(message);
+                String reply = result.reply;
+                String intent = result.intent;
+
+                // Route to AI when local matching found nothing, weak match, or for jokes for infinite variety.
+                boolean needsAi = ("fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
+                        && aiClient.isConfigured();
+
+                if (needsAi) {
+                    try {
+                        List<AiClient.Turn> history = List.copyOf(
+                                sessionHistory.getOrDefault(sessionId, new ArrayDeque<>()));
+                        reply = aiClient.ask(message, history);
+                        intent = "ai";
+                    } catch (Exception e) {
+                        System.err.println("AI fallback failed: " + e.getMessage());
+                        // Keep the original canned/local reply on failure.
+                    }
+                }
+
+                recordTurn(sessionId, message, reply);
+                ChatLogger.log(sessionId, message, intent, result.confidence);
+
+                String json = "{"
+                        + "\"reply\":\"" + escapeJson(reply) + "\","
+                        + "\"intent\":\"" + escapeJson(intent) + "\","
+                        + "\"confidence\":" + result.confidence
+                        + "}";
+                sendJson(exchange, 200, json, sessionId);
+            } catch (Throwable t) {
+                System.err.println("Request error in ChatHandler: " + t.getMessage());
+                try {
+                    sendJson(exchange, 500, "{\"error\":\"Internal server error: " + escapeJson(t.getMessage()) + "\"}", null);
+                } catch (IOException ignored) {}
             }
-
-            recordTurn(sessionId, message, reply);
-            ChatLogger.log(sessionId, message, intent, result.confidence);
-
-            String json = "{"
-                    + "\"reply\":\"" + escapeJson(reply) + "\","
-                    + "\"intent\":\"" + escapeJson(intent) + "\","
-                    + "\"confidence\":" + result.confidence
-                    + "}";
-            sendJson(exchange, 200, json, sessionId);
         }
     }
 

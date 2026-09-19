@@ -45,21 +45,26 @@ initTheme();
 // --- API endpoint base (allows testing directly via file:// if backend is running on 5000) ---
 const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:5000' : '';
 
-// --- Health check: reflect whether AI fallback is enabled ---
+// --- Health check: reflect whether AI fallback is enabled & auto-reconnect ---
+let isServerOnline = false;
 async function checkHealth() {
   try {
-    const res = await fetch(API_BASE + '/api/health');
+    const res = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Status ' + res.status);
     const data = await res.json();
+    isServerOnline = true;
     if (data.aiEnabled) {
       botStatus.innerHTML = '<span class="dot"></span>Online — rule-based + AI fallback';
     } else {
       botStatus.innerHTML = '<span class="dot"></span>Online — rule-based demo (Java)';
     }
   } catch (err) {
-    botStatus.innerHTML = '<span class="dot"></span>Offline — server unreachable';
+    isServerOnline = false;
+    botStatus.innerHTML = '<span class="dot offline"></span>Offline — server unreachable (run run.bat)';
   }
 }
 checkHealth();
+setInterval(checkHealth, 3000);
 
 // --- Message formatting with safe escaping ---
 function escapeHtml(str) {
@@ -142,7 +147,7 @@ async function sendMessage(text) {
     }
   } catch (err) {
     typingEl.remove();
-    addMessage("Couldn't reach the server. Is it running?", 'bot');
+    addMessage("⚠️ Couldn't reach the server. Please run `run.bat` on your computer to start the chatbot backend, then try again.", 'bot');
   } finally {
     messageInput.disabled = false;
     messageInput.focus();
