@@ -316,7 +316,7 @@ if (SpeechRecognition && micBtn) {
     const transcript = event.results[0][0].transcript;
     if (transcript && transcript.trim()) {
       messageInput.value = transcript;
-      sendMessage(transcript);
+      sendMessage(transcript, true);
     }
   };
 
@@ -409,7 +409,7 @@ function addTypingIndicator() {
   return msg;
 }
 
-async function sendMessage(text) {
+async function sendMessage(text, isVoice = false) {
   if (!text || messageInput.disabled) return;
 
   const timeNow = getTimeString();
@@ -436,13 +436,17 @@ async function sendMessage(text) {
       // 2. Render & Store bot response
       renderMessage(data.reply, 'bot', data.actionExecuted, botTime);
       appendHistory(data.reply, 'bot', data.actionExecuted, botTime);
-      // 3. Always respond in voice!
-      speakJarvis(data.reply);
+      // 3. Only respond in voice if user spoke in voice!
+      if (isVoice) {
+        speakJarvis(data.reply);
+      }
     } else {
       const err = data.error || "Something went wrong.";
       renderMessage(err, 'bot', null, botTime);
       appendHistory(err, 'bot', null, botTime);
-      speakJarvis(err);
+      if (isVoice) {
+        speakJarvis(err);
+      }
     }
   } catch (err) {
     typingEl.remove();
@@ -450,7 +454,9 @@ async function sendMessage(text) {
     const botTime = getTimeString();
     renderMessage(errMsg, 'bot', null, botTime);
     appendHistory(errMsg, 'bot', null, botTime);
-    speakJarvis(errMsg);
+    if (isVoice) {
+      speakJarvis(errMsg);
+    }
   } finally {
     messageInput.disabled = false;
     messageInput.focus();
@@ -461,7 +467,7 @@ chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
   if (text) {
-    sendMessage(text);
+    sendMessage(text, false);
   }
 });
 
@@ -471,7 +477,7 @@ document.querySelectorAll('.chip').forEach(chip => {
   chip.addEventListener('click', () => {
     const msg = chip.getAttribute('data-msg');
     if (msg) {
-      sendMessage(msg);
+      sendMessage(msg, false);
     }
   });
 });
@@ -517,6 +523,5 @@ if (clearBtn) {
     const timeNow = getTimeString();
     renderMessage(resetMsg, 'bot', null, timeNow);
     appendHistory(resetMsg, 'bot', null, timeNow);
-    speakJarvis(resetMsg);
   });
 }
