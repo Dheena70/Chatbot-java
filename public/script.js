@@ -5,8 +5,14 @@ const botStatus = document.getElementById('botStatus');
 const themeToggle = document.getElementById('themeToggle');
 const clearBtn = document.getElementById('clearBtn');
 const welcomeTime = document.getElementById('welcomeTime');
+const voiceIndicator = document.getElementById('voiceIndicator');
+const autoListenToggle = document.getElementById('autoListenToggle');
+const startVoiceChatBtn = document.getElementById('startVoiceChatBtn');
+const voiceToggle = document.getElementById('voiceToggle');
+const voiceIcon = document.getElementById('voiceIcon');
+const micBtn = document.getElementById('micBtn');
 
-// --- Session id (lets the server keep short conversation history per browser) ---
+// --- Session ID ---
 function getSessionId() {
   let id = localStorage.getItem('chatbot_session_id');
   if (!id) {
@@ -21,9 +27,6 @@ let sessionId = getSessionId();
 function getTimeString() {
   const d = new Date();
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-if (welcomeTime) {
-  welcomeTime.textContent = getTimeString();
 }
 
 // --- Theme (dark/light) ---
@@ -42,10 +45,10 @@ themeToggle.addEventListener('click', () => {
 });
 initTheme();
 
-// --- API endpoint base (allows testing directly via file:// if backend is running on 5000) ---
+// --- API endpoint base ---
 const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:5000' : '';
 
-// --- Health check: reflect whether AI fallback is enabled & auto-reconnect ---
+// --- Health check: reflect status & auto-reconnect ---
 let isServerOnline = false;
 async function checkHealth() {
   try {
@@ -66,10 +69,42 @@ async function checkHealth() {
 checkHealth();
 setInterval(checkHealth, 3000);
 
-// --- Jarvis Voice (Text-to-Speech) ---
-const voiceToggle = document.getElementById('voiceToggle');
-const voiceIcon = document.getElementById('voiceIcon');
+// --- Message persistence (localStorage) ---
+const HISTORY_KEY = 'jarvis_chat_history_v2';
+let chatHistory = [];
+
+function loadHistory() {
+  try {
+    const data = localStorage.getItem(HISTORY_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory));
+  } catch (e) {
+    console.warn("Storage error:", e);
+  }
+}
+
+function appendHistory(text, sender, actionExecuted, time) {
+  chatHistory.push({
+    text,
+    sender,
+    actionExecuted: actionExecuted || null,
+    time: time || getTimeString()
+  });
+  // Cap history to 100 messages to prevent excessive storage
+  if (chatHistory.length > 100) chatHistory.shift();
+  saveHistory();
+}
+
+// --- Voice settings & state ---
 let voiceEnabled = localStorage.getItem('jarvis_voice') !== 'false';
+let continuousVoiceMode = localStorage.getItem('jarvis_continuous_voice') === 'true';
 
 function updateVoiceIcon() {
   if (!voiceIcon || !voiceToggle) return;
@@ -90,44 +125,151 @@ if (voiceToggle) {
     updateVoiceIcon();
     if (!voiceEnabled && window.speechSynthesis) {
       window.speechSynthesis.cancel();
+      setVisualizer('idle');
     }
   });
 }
 
-function speakJarvis(text) {
-  if (!voiceEnabled || !('speechSynthesis' in window)) return;
+function updateAutoListenUI() {
+  if (!autoListenToggle) return;
+  if (continuousVoiceMode) {
+    autoListenToggle.classList.add('active');
+    autoListenToggle.title = "ChatGPT Voice Mode: ACTIVE (Listening after reply). Click to turn off.";
+    if (startVoiceChatBtn) {
+      startVoiceChatBtn.textContent = "🛑 Stop Voice Mode";
+      startVoiceChatBtn.classList.add('chip-highlight');
+    }
+  } else {
+    autoListenToggle.classList.remove('active');
+    autoListenToggle.title = "ChatGPT Voice Mode: OFF (Click to enable continuous voice conversation)";
+    if (startVoiceChatBtn) {
+      startVoiceChatBtn.textContent = "🎙️ Hands-free Voice Mode";
+    }
+  }
+}
+updateAutoListenUI();
+
+if (autoListenToggle) {
+  autoListenToggle.addEventListener('click', () => {
+    continuousVoiceMode = !continuousVoiceMode;
+    localStorage.setItem('jarvis_continuous_voice', continuousVoiceMode);
+    updateAutoListenUI();
+    if (continuousVoiceMode && !isListening) {
+      startListening();
+    }
+  });
+}
+
+if (startVoiceChatBtn) {
+  startVoiceChatBtn.addEventListener('click', () => {
+    continuousVoiceMode = !continuousVoiceMode;
+    localStorage.setItem('jarvis_continuous_voice', continuousVoiceMode);
+    updateAutoListenUI();
+    if (continuousVoiceMode && !isListening) {
+      startListening();
+    } else if (!continuousVoiceMode && isListening) {
+      stopListening();
+    }
+  });
+}
+
+// --- Visualizer helper ---
+function setVisualizer(state) {
+  if (!voiceIndicator) return;
+  if (state === 'speaking') {
+    voiceIndicator.className = 'voice-indicator active speaking';
+  } else if (state === 'listening') {
+    voiceIndicator.className = 'voice-indicator active listening';
+  } else {
+    voiceIndicator.className = 'voice-indicator';
+  }
+}
+
+// --- Best human voice selector ---
+function getBestVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // Prioritize Microsoft Natural, Google English Male, or UK/US clear voices
+  const preferred = [
+    'natural', 'ryan', 'christopher', 'george', 'guy', 'david', 'google uk english male', 'uk english male', 'en-gb', 'en-us'
+  ];
+  for (const p of preferred) {
+    const match = voices.find(v => v.name.toLowerCase().includes(p) || (p.startsWith('en-') && v.lang.toLowerCase().startsWith(p)));
+    if (match) return match;
+  }
+  return voices.find(v => v.lang.startsWith('en')) || voices[0];
+}
+
+// --- Jarvis Text-to-Speech (ChatGPT Voice Style) ---
+function speakJarvis(text, onComplete) {
+  if (!voiceEnabled || !('speechSynthesis' in window)) {
+    if (onComplete) onComplete();
+    return;
+  }
+
   try {
     window.speechSynthesis.cancel();
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+
+    // Clean text: strip code blocks, markdown symbols, action tags, and URLs
     let speechText = text
       .replace(/```[\s\S]*?```/g, 'Code block executed.')
       .replace(/`([^`]+)`/g, '$1')
       .replace(/https?:\/\/\S+/g, '')
-      .replace(/[*#_~]/g, '')
+      .replace(/[*#_~>]/g, '')
       .replace(/⚡.*?Action:.*?\n/gi, '')
       .trim();
 
-    if (!speechText) return;
-    if (speechText.length > 250) {
+    if (!speechText) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    // Limit length to avoid browser timeout on huge text
+    if (speechText.length > 280) {
       const firstLine = speechText.split('\n')[0];
-      speechText = firstLine.length > 20 ? firstLine : speechText.substring(0, 200);
+      speechText = firstLine.length > 30 ? firstLine : speechText.substring(0, 240);
     }
 
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.rate = 1.05;
-    utterance.pitch = 0.95;
+    utterance.pitch = 0.96;
 
-    const voices = window.speechSynthesis.getVoices();
-    const chosen = voices.find(v => v.lang.startsWith('en') && (v.name.includes('David') || v.name.includes('George') || v.name.includes('Natural') || v.name.includes('Guy')))
-                || voices.find(v => v.lang.startsWith('en'));
-    if (chosen) utterance.voice = chosen;
+    const voice = getBestVoice();
+    if (voice) utterance.voice = voice;
+
+    setVisualizer('speaking');
+
+    utterance.onend = () => {
+      setVisualizer('idle');
+      if (onComplete) onComplete();
+      if (continuousVoiceMode) {
+        setTimeout(() => {
+          if (continuousVoiceMode && !isListening) {
+            startListening();
+          }
+        }, 400);
+      }
+    };
+
+    utterance.onerror = (e) => {
+      console.warn("TTS error:", e);
+      setVisualizer('idle');
+      if (onComplete) onComplete();
+    };
 
     window.speechSynthesis.speak(utterance);
   } catch (e) {
-    console.warn("TTS error:", e);
+    console.warn("TTS exception:", e);
+    setVisualizer('idle');
+    if (onComplete) onComplete();
   }
 }
 
-// Ensure voices are loaded
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices();
@@ -135,20 +277,38 @@ if ('speechSynthesis' in window) {
 }
 
 // --- Voice Input (Microphone / Speech-to-Text) ---
-const micBtn = document.getElementById('micBtn');
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+function startListening() {
+  if (!recognition || isListening) return;
+  try {
+    recognition.start();
+  } catch (err) {
+    console.warn("Recognition start error:", err);
+  }
+}
+
+function stopListening() {
+  if (!recognition || !isListening) return;
+  try {
+    recognition.stop();
+  } catch (err) {
+    console.warn("Recognition stop error:", err);
+  }
+}
 
 if (SpeechRecognition && micBtn) {
-  const recognition = new SpeechRecognition();
+  recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = false;
   recognition.lang = 'en-US';
 
-  let isListening = false;
-
   recognition.onstart = () => {
     isListening = true;
     micBtn.classList.add('recording');
+    setVisualizer('listening');
     messageInput.placeholder = 'Listening, Sir... Speak now.';
   };
 
@@ -163,24 +323,22 @@ if (SpeechRecognition && micBtn) {
   recognition.onerror = (event) => {
     isListening = false;
     micBtn.classList.remove('recording');
+    setVisualizer('idle');
     messageInput.placeholder = 'Speak or type a command for Jarvis, Sir...';
   };
 
   recognition.onend = () => {
     isListening = false;
     micBtn.classList.remove('recording');
+    setVisualizer('idle');
     messageInput.placeholder = 'Speak or type a command for Jarvis, Sir...';
   };
 
   micBtn.addEventListener('click', () => {
     if (!isListening) {
-      try {
-        recognition.start();
-      } catch (err) {
-        recognition.stop();
-      }
+      startListening();
     } else {
-      recognition.stop();
+      stopListening();
     }
   });
 } else if (micBtn) {
@@ -207,7 +365,7 @@ function formatMessage(text) {
   return escaped;
 }
 
-function addMessage(text, sender, actionExecuted) {
+function renderMessage(text, sender, actionExecuted, time) {
   const msg = document.createElement('div');
   msg.className = 'msg ' + sender;
 
@@ -229,12 +387,12 @@ function addMessage(text, sender, actionExecuted) {
     bubble.textContent = text;
   }
 
-  const time = document.createElement('span');
-  time.className = 'msg-time';
-  time.textContent = getTimeString();
+  const timeEl = document.createElement('span');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = time || getTimeString();
 
   content.appendChild(bubble);
-  content.appendChild(time);
+  content.appendChild(timeEl);
   msg.appendChild(content);
 
   chatWindow.appendChild(msg);
@@ -254,7 +412,11 @@ function addTypingIndicator() {
 async function sendMessage(text) {
   if (!text || messageInput.disabled) return;
 
-  addMessage(text, 'user');
+  const timeNow = getTimeString();
+  // 1. Render & Store user message (voice or typed)
+  renderMessage(text, 'user', null, timeNow);
+  appendHistory(text, 'user', null, timeNow);
+
   messageInput.value = '';
   messageInput.disabled = true;
 
@@ -269,17 +431,26 @@ async function sendMessage(text) {
     const data = await res.json();
     typingEl.remove();
 
+    const botTime = getTimeString();
     if (res.ok) {
-      addMessage(data.reply, 'bot', data.actionExecuted);
+      // 2. Render & Store bot response
+      renderMessage(data.reply, 'bot', data.actionExecuted, botTime);
+      appendHistory(data.reply, 'bot', data.actionExecuted, botTime);
+      // 3. Always respond in voice!
       speakJarvis(data.reply);
     } else {
       const err = data.error || "Something went wrong.";
-      addMessage(err, 'bot');
+      renderMessage(err, 'bot', null, botTime);
+      appendHistory(err, 'bot', null, botTime);
       speakJarvis(err);
     }
   } catch (err) {
     typingEl.remove();
-    addMessage("⚠️ Couldn't reach the server. Please run `run.bat` on your computer to start the chatbot backend, then try again.", 'bot');
+    const errMsg = "⚠️ Couldn't reach the server. Please check if DevBot backend is active.";
+    const botTime = getTimeString();
+    renderMessage(errMsg, 'bot', null, botTime);
+    appendHistory(errMsg, 'bot', null, botTime);
+    speakJarvis(errMsg);
   } finally {
     messageInput.disabled = false;
     messageInput.focus();
@@ -296,6 +467,7 @@ chatForm.addEventListener('submit', (e) => {
 
 // --- Quick suggestion chips ---
 document.querySelectorAll('.chip').forEach(chip => {
+  if (chip.id === 'startVoiceChatBtn') return;
   chip.addEventListener('click', () => {
     const msg = chip.getAttribute('data-msg');
     if (msg) {
@@ -303,6 +475,25 @@ document.querySelectorAll('.chip').forEach(chip => {
     }
   });
 });
+
+// --- Initialize / Restore chat from storage on load ---
+function initChatHistory() {
+  chatHistory = loadHistory();
+  if (chatHistory.length > 0) {
+    chatWindow.innerHTML = '';
+    for (const item of chatHistory) {
+      renderMessage(item.text, item.sender, item.actionExecuted, item.time);
+    }
+  } else {
+    // If no previous history, show the welcoming message
+    chatWindow.innerHTML = '';
+    const welcome = "At your service, Sir. I am JARVIS, your personal AI assistant. I have full control over your Windows laptop. Speak using the microphone button or type any command to get started!";
+    const timeNow = getTimeString();
+    renderMessage(welcome, 'bot', null, timeNow);
+    appendHistory(welcome, 'bot', null, timeNow);
+  }
+}
+initChatHistory();
 
 // --- Clear Chat / Reset Session ---
 if (clearBtn) {
@@ -317,11 +508,15 @@ if (clearBtn) {
       // Best effort
     }
     localStorage.removeItem('chatbot_session_id');
+    localStorage.removeItem(HISTORY_KEY);
+    chatHistory = [];
     sessionId = getSessionId();
 
     chatWindow.innerHTML = '';
     const resetMsg = "At your service, Sir. I am JARVIS, your personal AI assistant. I have full control over your Windows laptop. Speak using the microphone button or type any command to get started!";
-    addMessage(resetMsg, 'bot');
+    const timeNow = getTimeString();
+    renderMessage(resetMsg, 'bot', null, timeNow);
+    appendHistory(resetMsg, 'bot', null, timeNow);
     speakJarvis(resetMsg);
   });
 }

@@ -14,7 +14,20 @@
         <div class="bot-name">JARVIS</div>
         <div class="bot-status" id="botStatus"><span class="dot"></span>Online — Laptop Control Active</div>
       </div>
+      <div class="voice-indicator" id="voiceIndicator" title="Audio Visualizer">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
       <div class="header-actions">
+        <button type="button" class="header-btn" id="autoListenToggle" aria-label="Continuous Voice Mode" title="Hands-free Voice Mode: OFF (Click to enable continuous talk)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+          </svg>
+        </button>
         <button type="button" class="header-btn" id="voiceToggle" aria-label="Toggle Voice Response" title="Jarvis Voice: ON (Click to mute)">
           <svg id="voiceIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -40,6 +53,7 @@
     </main>
 
     <div class="quick-chips" id="quickChips">
+      <button type="button" class="chip chip-highlight" id="startVoiceChatBtn">🎙️ Hands-free Voice Mode</button>
       <button type="button" class="chip" data-msg="Battery status">🔋 Battery Status</button>
       <button type="button" class="chip" data-msg="Disk space">💾 C: Drive Space</button>
       <button type="button" class="chip" data-msg="Take screenshot">📸 Take Screenshot</button>
