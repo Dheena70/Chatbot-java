@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -350,6 +351,121 @@ public class SystemController {
             return "Hotkey executed: " + combo;
         } catch (Exception e) {
             return "Hotkey failed: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Directly turns Wi-Fi or Bluetooth ON or OFF without opening any Settings window.
+     * Uses Windows Runtime Radio Management API.
+     */
+    public static String toggleRadio(String radioKind, String targetState) {
+        if (radioKind == null) return "Invalid device.";
+        String cleanKind = radioKind.trim().toLowerCase();
+        String expectedKind = cleanKind.contains("blue") ? "Bluetooth" : "WiFi";
+        boolean turnOn = targetState != null && (targetState.trim().equalsIgnoreCase("on") || targetState.trim().equalsIgnoreCase("enable"));
+        String stateEnum = turnOn ? "On" : "Off";
+
+        String script = "Add-Type -AssemblyName System.Runtime.WindowsRuntime;\n"
+                + "$as = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1;\n"
+                + "function Await($t, $r) {\n"
+                + "    $m = $as.MakeGenericMethod($r);\n"
+                + "    $net = $m.Invoke($null, @($t));\n"
+                + "    $net.Wait(-1) | Out-Null;\n"
+                + "    return $net.Result;\n"
+                + "};\n"
+                + "[Windows.Devices.Radios.Radio,Windows.System.Devices,ContentType=WindowsRuntime] | Out-Null;\n"
+                + "$radios = Await ([Windows.Devices.Radios.Radio]::GetRadiosAsync()) ([System.Collections.Generic.IReadOnlyList[Windows.Devices.Radios.Radio]]);\n"
+                + "$r = $radios | Where-Object { $_.Kind -eq '" + expectedKind + "' };\n"
+                + "if ($r) {\n"
+                + "    Await ($r.SetStateAsync([Windows.Devices.Radios.RadioState]::" + stateEnum + ")) ([Windows.Devices.Radios.RadioAccessStatus]) | Out-Null;\n"
+                + "    Write-Output 'SUCCESS';\n"
+                + "} else {\n"
+                + "    Write-Output 'NOT_FOUND';\n"
+                + "};\n";
+
+        try {
+            String encoded = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+            Process process = new ProcessBuilder(
+                    "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded
+            ).redirectErrorStream(true).start();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line);
+                }
+            }
+            process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (output.toString().contains("SUCCESS")) {
+                return (expectedKind.equals("WiFi") ? "Wi-Fi" : "Bluetooth") + " has been turned " + (turnOn ? "ON" : "OFF") + ", Sir.";
+            } else {
+                return "Could not change " + (expectedKind.equals("WiFi") ? "Wi-Fi" : "Bluetooth") + " state.";
+            }
+        } catch (Exception e) {
+            return "Failed to toggle " + radioKind + ": " + e.getMessage();
+        }
+    }
+
+    /** Directly closes a running application by name or alias. */
+    public static String closeApp(String appName) {
+        if (appName == null || appName.isBlank()) return "Please specify an application to close.";
+        String clean = appName.trim().toLowerCase();
+        String procName;
+        switch (clean) {
+            case "notepad": procName = "notepad"; break;
+            case "calc":
+            case "calculator": procName = "CalculatorApp*,calc*"; break;
+            case "chrome": procName = "chrome"; break;
+            case "edge": procName = "msedge"; break;
+            case "spotify": procName = "spotify"; break;
+            case "paint":
+            case "mspaint": procName = "mspaint"; break;
+            case "code":
+            case "vscode":
+            case "vs code": procName = "code"; break;
+            case "cmd": procName = "cmd"; break;
+            case "powershell": procName = "powershell"; break;
+            case "taskmgr":
+            case "task manager": procName = "taskmgr"; break;
+            default: procName = clean; break;
+        }
+
+        try {
+            Process p = new ProcessBuilder(
+                    "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                    "Stop-Process -Name " + procName + " -Force -ErrorAction SilentlyContinue"
+            ).redirectErrorStream(true).start();
+            p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            return "Closed " + appName + ", Sir.";
+        } catch (Exception e) {
+            return "Failed to close " + appName + ": " + e.getMessage();
+        }
+    }
+
+    /** Directly toggles Windows Dark Mode ON or OFF. */
+    public static String toggleDarkMode(String state) {
+        boolean on = state == null || state.equalsIgnoreCase("on") || state.equalsIgnoreCase("enable") || state.equalsIgnoreCase("dark");
+        int val = on ? 0 : 1; // 0 = Dark mode, 1 = Light mode
+        try {
+            String psCmd = "Set-ItemProperty -Path HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize -Name AppsUseLightTheme -Value " + val + "; "
+                    + "Set-ItemProperty -Path HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize -Name SystemUsesLightTheme -Value " + val;
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCmd).start();
+            return "Dark mode has been turned " + (on ? "ON" : "OFF") + ", Sir.";
+        } catch (IOException e) {
+            return "Failed to toggle Dark Mode: " + e.getMessage();
+        }
+    }
+
+    /** Directly turns off the monitor display (sleep screen). */
+    public static String turnOffScreen() {
+        try {
+            String psCmd = "(Add-Type '[DllImport(\"user32.dll\")]public static extern int SendMessage(int hWnd, int hMsg, int wParam, int lParam);' -Name a -Passthru)::SendMessage(-1,0x0112,0xF170,2)";
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCmd).start();
+            return "Display turned off, Sir.";
+        } catch (IOException e) {
+            return "Failed to turn off screen: " + e.getMessage();
         }
     }
 }

@@ -63,6 +63,18 @@ public class ChatEngineTest {
         ChatEngine.ChatResult volRes = engine.getResponse("volume up");
         check("volume up matches 'jarvis_vol_up'", "jarvis_vol_up", volRes.intent);
 
+        ChatEngine.ChatResult closeNp = engine.getResponse("close notepad");
+        check("close notepad matches 'jarvis_close_notepad'", "jarvis_close_notepad", closeNp.intent);
+
+        ChatEngine.ChatResult btOn = engine.getResponse("turn on bluetooth");
+        check("turn on bluetooth matches 'jarvis_bt_on'", "jarvis_bt_on", btOn.intent);
+
+        ChatEngine.ChatResult dmOn = engine.getResponse("turn on dark mode");
+        check("turn on dark mode matches 'jarvis_darkmode_on'", "jarvis_darkmode_on", dmOn.intent);
+
+        ChatEngine.ChatResult scrOff = engine.getResponse("turn off screen");
+        check("turn off screen matches 'jarvis_screen_off'", "jarvis_screen_off", scrOff.intent);
+
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
         if (failed > 0) {

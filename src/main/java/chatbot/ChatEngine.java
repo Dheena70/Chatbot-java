@@ -205,6 +205,36 @@ public class ChatEngine {
         if (response.contains("{youtube}")) {
             response = response.replace("{youtube}", SystemController.searchYouTube(null));
         }
+        if (response.contains("{wifi_on}")) {
+            response = response.replace("{wifi_on}", SystemController.toggleRadio("wifi", "on"));
+        }
+        if (response.contains("{wifi_off}")) {
+            response = response.replace("{wifi_off}", SystemController.toggleRadio("wifi", "off"));
+        }
+        if (response.contains("{bt_on}")) {
+            response = response.replace("{bt_on}", SystemController.toggleRadio("bluetooth", "on"));
+        }
+        if (response.contains("{bt_off}")) {
+            response = response.replace("{bt_off}", SystemController.toggleRadio("bluetooth", "off"));
+        }
+        if (response.contains("{darkmode_on}")) {
+            response = response.replace("{darkmode_on}", SystemController.toggleDarkMode("on"));
+        }
+        if (response.contains("{darkmode_off}")) {
+            response = response.replace("{darkmode_off}", SystemController.toggleDarkMode("off"));
+        }
+        if (response.contains("{screen_off}")) {
+            response = response.replace("{screen_off}", SystemController.turnOffScreen());
+        }
+        if (response.contains("{close_notepad}")) {
+            response = response.replace("{close_notepad}", SystemController.closeApp("notepad"));
+        }
+        if (response.contains("{close_calc}")) {
+            response = response.replace("{close_calc}", SystemController.closeApp("calc"));
+        }
+        if (response.contains("{close_chrome}")) {
+            response = response.replace("{close_chrome}", SystemController.closeApp("chrome"));
+        }
         return response;
     }
 

@@ -472,6 +472,26 @@ public class ChatbotServer {
                 executionResult = SystemController.simulateHotkey(param);
                 actionName = "Hotkey: " + param;
                 break;
+            case "toggle_wifi":
+                executionResult = SystemController.toggleRadio("wifi", param);
+                actionName = "Wi-Fi: " + (param != null ? param.toUpperCase() : "");
+                break;
+            case "toggle_bluetooth":
+                executionResult = SystemController.toggleRadio("bluetooth", param);
+                actionName = "Bluetooth: " + (param != null ? param.toUpperCase() : "");
+                break;
+            case "close_app":
+                executionResult = SystemController.closeApp(param);
+                actionName = "Closed " + param;
+                break;
+            case "toggle_darkmode":
+                executionResult = SystemController.toggleDarkMode(param);
+                actionName = "Dark Mode: " + (param != null ? param.toUpperCase() : "");
+                break;
+            case "turn_off_screen":
+                executionResult = SystemController.turnOffScreen();
+                actionName = "Screen Turned Off";
+                break;
             default:
                 break;
         }

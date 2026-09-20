@@ -27,4 +27,14 @@ jarvis_downloads,open downloads|downloads folder|show downloads|open download,{d
 jarvis_desktop,open desktop|desktop folder|show desktop,{desktop}
 jarvis_youtube,open youtube|launch youtube|start youtube|youtube open,{youtube}
 jarvis_lock,lock laptop|lock pc|screen lock|lock screen|lock computer,{lock}
+jarvis_wifi_off,turn off wifi|disable wifi|switch off wifi|wifi off|wifi off pannu|wifi-a off pannu,{wifi_off}
+jarvis_wifi_on,turn on wifi|enable wifi|switch on wifi|wifi on|wifi on pannu|wifi-a on pannu,{wifi_on}
+jarvis_bt_off,turn off bluetooth|disable bluetooth|switch off bluetooth|bluetooth off|bluetooth off pannu,{bt_off}
+jarvis_bt_on,turn on bluetooth|enable bluetooth|switch on bluetooth|bluetooth on|bluetooth on pannu,{bt_on}
+jarvis_darkmode_on,turn on dark mode|enable dark mode|dark mode on|dark mode podu,{darkmode_on}
+jarvis_darkmode_off,turn off dark mode|disable dark mode|light mode on|turn on light mode,{darkmode_off}
+jarvis_screen_off,turn off screen|turn off display|screen off|monitor off|display off,{screen_off}
+jarvis_close_notepad,close notepad|turn off notepad|exit notepad|notepad moodu|notepad-a close pannu,{close_notepad}
+jarvis_close_calc,close calculator|close calc|turn off calculator|calc moodu,{close_calc}
+jarvis_close_chrome,close chrome|turn off chrome|exit chrome|chrome-a moodu,{close_chrome}
 fallback,,I'm not sure I understand that yet. Could you rephrase, or try asking about my creator, my capabilities, or just say hello?
