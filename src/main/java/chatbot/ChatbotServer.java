@@ -464,12 +464,24 @@ public class ChatbotServer {
                 executionResult = SystemController.createDesktopFolder(param);
                 actionName = "Folder Created: " + param;
                 break;
+            case "powershell":
+                executionResult = SystemController.executePowerShell(param);
+                actionName = "Task Execution";
+                break;
+            case "hotkey":
+                executionResult = SystemController.simulateHotkey(param);
+                actionName = "Hotkey: " + param;
+                break;
             default:
                 break;
         }
 
         if (cleanedReply.isEmpty() && !executionResult.isEmpty()) {
             cleanedReply = executionResult;
+        } else if (!cleanedReply.isEmpty() && !executionResult.isEmpty() && actionType.equals("powershell")) {
+            if (!executionResult.equals("Command executed successfully, Sir.") && !cleanedReply.contains(executionResult)) {
+                cleanedReply = cleanedReply + "\n\n" + executionResult;
+            }
         }
 
         return new ActionResult(cleanedReply, actionName);

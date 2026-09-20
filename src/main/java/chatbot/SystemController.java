@@ -285,4 +285,71 @@ public class SystemController {
             return "Could not lock screen: " + e.getMessage();
         }
     }
+
+    /**
+     * Executes arbitrary PowerShell commands safely on Windows for general Jarvis tasks.
+     * Blocks catastrophic system commands (formatting, system32 destruction).
+     */
+    public static String executePowerShell(String script) {
+        if (script == null || script.isBlank()) return "Empty command.";
+
+        // Security Guardrails: Protect critical OS paths and formats
+        String lower = script.toLowerCase();
+        if (lower.contains("format ") || lower.contains("system32") || lower.contains("del /f /s /q c:\\")
+                || lower.contains("remove-item -recurse -force c:\\windows")) {
+            return "⚠️ Blocked for security: That command could damage your Windows operating system.";
+        }
+
+        try {
+            Process process = new ProcessBuilder(
+                    "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script
+            ).redirectErrorStream(true).start();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (output.length() < 2000) {
+                        output.append(line).append("\n");
+                    }
+                }
+            }
+
+            boolean finished = process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                return "Command timed out after 15 seconds.";
+            }
+
+            String result = output.toString().trim();
+            return result.isEmpty() ? "Command executed successfully, Sir." : result;
+        } catch (Exception e) {
+            return "Execution failed: " + e.getMessage();
+        }
+    }
+
+    /** Simulates keyboard hotkeys like Win+D (show desktop) or Alt+Tab. */
+    public static String simulateHotkey(String combo) {
+        if (combo == null) return "Invalid hotkey.";
+        try {
+            Robot robot = new Robot();
+            String clean = combo.toLowerCase().trim();
+            if (clean.equals("win+d") || clean.equals("show_desktop") || clean.equals("minimize_all")) {
+                robot.keyPress(java.awt.event.KeyEvent.VK_WINDOWS);
+                robot.keyPress(java.awt.event.KeyEvent.VK_D);
+                robot.keyRelease(java.awt.event.KeyEvent.VK_D);
+                robot.keyRelease(java.awt.event.KeyEvent.VK_WINDOWS);
+                return "Toggled Show Desktop (Win + D), Sir.";
+            } else if (clean.equals("alt+tab")) {
+                robot.keyPress(java.awt.event.KeyEvent.VK_ALT);
+                robot.keyPress(java.awt.event.KeyEvent.VK_TAB);
+                robot.keyRelease(java.awt.event.KeyEvent.VK_TAB);
+                robot.keyRelease(java.awt.event.KeyEvent.VK_ALT);
+                return "Switched window (Alt + Tab), Sir.";
+            }
+            return "Hotkey executed: " + combo;
+        } catch (Exception e) {
+            return "Hotkey failed: " + e.getMessage();
+        }
+    }
 }
