@@ -3,18 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Chatbot — Dheena</title>
+<title>JARVIS — Personal AI Assistant</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="chat-shell">
     <header class="chat-header">
-      <div class="bot-avatar">DB</div>
+      <div class="bot-avatar" title="J.A.R.V.I.S. Core">JV</div>
       <div>
-        <div class="bot-name">DevBot</div>
-        <div class="bot-status" id="botStatus"><span class="dot"></span>Online — rule-based demo (Java)</div>
+        <div class="bot-name">JARVIS</div>
+        <div class="bot-status" id="botStatus"><span class="dot"></span>Online — Laptop Control Active</div>
       </div>
       <div class="header-actions">
+        <button type="button" class="header-btn" id="voiceToggle" aria-label="Toggle Voice Response" title="Jarvis Voice: ON (Click to mute)">
+          <svg id="voiceIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
         <button type="button" class="header-btn" id="clearBtn" aria-label="Clear chat" title="Clear chat history">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         </button>
@@ -27,7 +33,7 @@
     <main class="chat-window" id="chatWindow">
       <div class="msg bot">
         <div class="msg-content">
-          <div class="bubble">Greetings! I am DevBot, your personal Jarvis-style AI assistant. I can chat, write code, answer questions, and control your laptop. Try asking me to open apps, check your battery, or adjust the volume!</div>
+          <div class="bubble">At your service, Sir. I am JARVIS, your personal AI assistant. I have full control over your Windows laptop. Speak using the microphone button or type any command to get started!</div>
           <span class="msg-time" id="welcomeTime"></span>
         </div>
       </div>
@@ -46,7 +52,14 @@
     </div>
 
     <form class="chat-input" id="chatForm" autocomplete="off">
-      <input type="text" id="messageInput" placeholder="Type a message..." required />
+      <button type="button" class="mic-btn" id="micBtn" aria-label="Speak to Jarvis" title="Click to speak (Microphone)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+        </svg>
+      </button>
+      <input type="text" id="messageInput" placeholder="Speak or type a command for Jarvis, Sir..." required />
       <button type="submit" aria-label="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
       </button>

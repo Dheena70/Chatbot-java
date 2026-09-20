@@ -44,11 +44,14 @@ body{
 }
 .header-btn:hover{ color:var(--text); background:rgba(255,255,255,0.06); }
 .bot-avatar{
-  width:42px; height:42px; border-radius:12px; background:linear-gradient(100deg,var(--blue),var(--violet));
-  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff;
-  box-shadow:0 4px 12px rgba(91,141,239,0.3);
+  width:42px; height:42px; border-radius:12px;
+  background:radial-gradient(circle at center, #3fd1c9 0%, #1e3a8a 65%, #0d1220 100%);
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#fff;
+  border:1px solid rgba(63,209,201,0.5);
+  box-shadow:0 0 15px rgba(63,209,201,0.4), inset 0 0 8px rgba(63,209,201,0.5);
+  letter-spacing:1px;
 }
-.bot-name{ font-weight:600; font-size:16px; }
+.bot-name{ font-weight:700; font-size:16px; letter-spacing:0.8px; color:var(--text); }
 .bot-status{ font-size:13px; color:var(--text-dim); display:flex; align-items:center; gap:7px; margin-top:2px; }
 .bot-status .dot{ width:7px; height:7px; border-radius:50%; background:#3fd18e; box-shadow:0 0 8px #3fd18e; transition:all .3s ease; }
 .bot-status .dot.offline{ background:#ef4444; box-shadow:0 0 8px #ef4444; }
@@ -114,13 +117,29 @@ body.light .bubble code{ background:rgba(0,0,0,0.06); }
   padding:13px 18px; color:var(--text); font-size:15px; font-family:inherit;
 }
 .chat-input input:focus{ outline:none; border-color:rgba(91,141,239,0.5); }
-.chat-input button{
+.chat-input button[type="submit"]{
   width:46px; height:46px; border-radius:12px; border:none; cursor:pointer;
   background:linear-gradient(100deg,var(--blue),var(--violet)); color:#fff;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
   transition:transform .2s ease;
 }
-.chat-input button:hover{ transform:translateY(-1px); }
+.chat-input button[type="submit"]:hover{ transform:translateY(-1px); }
+
+.mic-btn{
+  width:46px; height:46px; border-radius:12px; border:1px solid var(--panel-border);
+  background:var(--input-bg); color:var(--text-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:all .2s ease;
+}
+.mic-btn:hover{ color:var(--cyan); border-color:rgba(63,209,201,0.5); background:rgba(63,209,201,0.1); }
+.mic-btn.recording{
+  color:#fff; background:#ef4444; border-color:#ef4444;
+  animation:pulse-mic 1s infinite alternate ease-in-out;
+}
+@keyframes pulse-mic{
+  0%{ transform:scale(1); box-shadow:0 0 8px rgba(239,68,68,0.5); }
+  100%{ transform:scale(1.06); box-shadow:0 0 20px rgba(239,68,68,0.9); }
+}
 
 @media (max-width: 600px){
   body{ padding:0; }
