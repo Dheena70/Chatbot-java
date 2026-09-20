@@ -66,6 +66,13 @@ body{
   display:flex; flex-direction:column; max-width:84%; gap:4px;
 }
 .msg.user .msg-content{ align-items:flex-end; }
+.action-badge{
+  display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600;
+  color:var(--cyan); background:rgba(63,209,201,0.12); border:1px solid rgba(63,209,201,0.3);
+  border-radius:20px; padding:3px 10px; margin-bottom:2px; align-self:flex-start;
+  text-transform:uppercase; letter-spacing:0.5px;
+}
+.action-badge span{ color:var(--text-dim); text-transform:none; font-weight:400; }
 .msg-time{
   font-size:11px; color:var(--text-dim); padding:0 4px;
 }

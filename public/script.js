@@ -85,12 +85,19 @@ function formatMessage(text) {
   return escaped;
 }
 
-function addMessage(text, sender) {
+function addMessage(text, sender, actionExecuted) {
   const msg = document.createElement('div');
   msg.className = 'msg ' + sender;
 
   const content = document.createElement('div');
   content.className = 'msg-content';
+
+  if (sender === 'bot' && actionExecuted) {
+    const badge = document.createElement('div');
+    badge.className = 'action-badge';
+    badge.innerHTML = '⚡ <span>Jarvis Action:</span> ' + escapeHtml(actionExecuted);
+    content.appendChild(badge);
+  }
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
@@ -141,7 +148,7 @@ async function sendMessage(text) {
     typingEl.remove();
 
     if (res.ok) {
-      addMessage(data.reply, 'bot');
+      addMessage(data.reply, 'bot', data.actionExecuted);
     } else {
       addMessage(data.error || "Something went wrong.", 'bot');
     }
@@ -188,6 +195,6 @@ if (clearBtn) {
     sessionId = getSessionId();
 
     chatWindow.innerHTML = '';
-    addMessage("Hi! I'm a simple rule-based chatbot built with plain Java. Try saying hello, or ask what I can do.", 'bot');
+    addMessage("Greetings! I am DevBot, your personal Jarvis-style AI assistant. I can chat, write code, answer questions, and control your laptop. Try asking me to open apps, check your battery, or adjust the volume!", 'bot');
   });
 }

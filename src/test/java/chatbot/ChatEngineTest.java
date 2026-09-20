@@ -51,6 +51,18 @@ public class ChatEngineTest {
         check("another joke matches 'joke' intent", "joke", joke2.intent);
         check("consecutive jokes rotate to a different joke", false, joke1.reply.equals(joke2.reply));
 
+        ChatEngine.ChatResult batteryRes = engine.getResponse("check battery");
+        check("battery question matches 'jarvis_battery'", "jarvis_battery", batteryRes.intent);
+
+        ChatEngine.ChatResult diskRes = engine.getResponse("disk space");
+        check("disk question matches 'jarvis_disk'", "jarvis_disk", diskRes.intent);
+
+        ChatEngine.ChatResult notepadRes = engine.getResponse("open notepad");
+        check("open notepad matches 'jarvis_notepad'", "jarvis_notepad", notepadRes.intent);
+
+        ChatEngine.ChatResult volRes = engine.getResponse("volume up");
+        check("volume up matches 'jarvis_vol_up'", "jarvis_vol_up", volRes.intent);
+
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
         if (failed > 0) {

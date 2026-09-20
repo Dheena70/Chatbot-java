@@ -27,17 +27,22 @@
     <main class="chat-window" id="chatWindow">
       <div class="msg bot">
         <div class="msg-content">
-          <div class="bubble">Hi! I'm a simple rule-based chatbot built with plain Java. Try saying hello, or ask what I can do.</div>
+          <div class="bubble">Greetings! I am DevBot, your personal Jarvis-style AI assistant. I can chat, write code, answer questions, and control your laptop. Try asking me to open apps, check your battery, or adjust the volume!</div>
           <span class="msg-time" id="welcomeTime"></span>
         </div>
       </div>
     </main>
 
     <div class="quick-chips" id="quickChips">
+      <button type="button" class="chip" data-msg="Battery status">🔋 Battery Status</button>
+      <button type="button" class="chip" data-msg="Disk space">💾 C: Drive Space</button>
+      <button type="button" class="chip" data-msg="Take screenshot">📸 Take Screenshot</button>
+      <button type="button" class="chip" data-msg="Open Notepad">📝 Open Notepad</button>
+      <button type="button" class="chip" data-msg="Open Calculator">🧮 Calculator</button>
+      <button type="button" class="chip" data-msg="Volume up">🔊 Volume Up</button>
+      <button type="button" class="chip" data-msg="Open YouTube">🎵 YouTube</button>
       <button type="button" class="chip" data-msg="What can you do?">💡 What can you do?</button>
-      <button type="button" class="chip" data-msg="What time is it?">⏰ What time is it?</button>
       <button type="button" class="chip" data-msg="Tell me a joke">😄 Tell me a joke</button>
-      <button type="button" class="chip" data-msg="Who created you?">👨‍💻 Who created you?</button>
     </div>
 
     <form class="chat-input" id="chatForm" autocomplete="off">

@@ -146,6 +146,18 @@ public class ChatbotServer {
                     }
                 }
 
+                String actionExecuted = null;
+                if (result.intent != null && result.intent.startsWith("jarvis_")) {
+                    actionExecuted = result.intent.replace("jarvis_", "");
+                }
+
+                // If AI replied with an [ACTION:...] tag, execute it!
+                if (reply != null && reply.contains("[ACTION:")) {
+                    ActionResult ar = executeJarvisAction(reply);
+                    reply = ar.cleanedReply;
+                    actionExecuted = ar.actionName;
+                }
+
                 recordTurn(sessionId, message, reply);
                 ChatLogger.log(sessionId, message, intent, result.confidence);
 
@@ -153,6 +165,7 @@ public class ChatbotServer {
                         + "\"reply\":\"" + escapeJson(reply) + "\","
                         + "\"intent\":\"" + escapeJson(intent) + "\","
                         + "\"confidence\":" + result.confidence
+                        + (actionExecuted != null ? ",\"actionExecuted\":\"" + escapeJson(actionExecuted) + "\"" : "")
                         + "}";
                 sendJson(exchange, 200, json, sessionId);
             } catch (Throwable t) {
@@ -370,5 +383,95 @@ public class ChatbotServer {
             }
         }
         return sb.toString();
+    }
+
+    private static class ActionResult {
+        final String cleanedReply;
+        final String actionName;
+        ActionResult(String cleanedReply, String actionName) {
+            this.cleanedReply = cleanedReply;
+            this.actionName = actionName;
+        }
+    }
+
+    /** Parses and executes [ACTION:type:param] tags emitted by the AI assistant. */
+    private static ActionResult executeJarvisAction(String reply) {
+        int start = reply.indexOf("[ACTION:");
+        int end = reply.indexOf("]", start);
+        if (start == -1 || end == -1) {
+            return new ActionResult(reply, null);
+        }
+
+        String actionTag = reply.substring(start + 8, end).trim();
+        String cleanedReply = (reply.substring(0, start) + " " + reply.substring(end + 1)).trim();
+
+        String[] parts = actionTag.split(":", 2);
+        String actionType = parts[0].trim().toLowerCase();
+        String param = parts.length > 1 ? parts[1].trim() : "";
+
+        String executionResult = "";
+        String actionName = actionType;
+
+        switch (actionType) {
+            case "open_app":
+                executionResult = SystemController.launchApp(param);
+                actionName = "Opened " + param;
+                break;
+            case "search_youtube":
+                executionResult = SystemController.searchYouTube(param);
+                actionName = "YouTube: " + param;
+                break;
+            case "search_google":
+                executionResult = SystemController.searchGoogle(param);
+                actionName = "Google: " + param;
+                break;
+            case "open_url":
+                executionResult = SystemController.openUrl(param);
+                actionName = "Opened " + param;
+                break;
+            case "open_folder":
+                executionResult = SystemController.openFolder(param);
+                actionName = "Opened " + param;
+                break;
+            case "volume":
+                executionResult = SystemController.changeVolume(param);
+                actionName = "Volume: " + param;
+                break;
+            case "screenshot":
+                executionResult = SystemController.captureScreenshot();
+                actionName = "Screenshot Captured";
+                break;
+            case "lock":
+                executionResult = SystemController.lockWorkstation();
+                actionName = "Workstation Locked";
+                break;
+            case "battery":
+                executionResult = SystemController.getBatteryStatus();
+                actionName = "Battery Checked";
+                break;
+            case "disk":
+                executionResult = SystemController.getDiskStatus();
+                actionName = "Disk Checked";
+                break;
+            case "create_note":
+                String[] noteParts = param.split("\\|", 2);
+                String noteTitle = noteParts[0].trim();
+                String noteContent = noteParts.length > 1 ? noteParts[1].trim() : "";
+                executionResult = SystemController.createDesktopNote(noteTitle, noteContent);
+                actionName = "Note Created";
+                break;
+            case "create_folder":
+                executionResult = SystemController.createDesktopFolder(param);
+                actionName = "Folder Created: " + param;
+                break;
+            default:
+                break;
+        }
+
+        if (cleanedReply.isEmpty() && !executionResult.isEmpty()) {
+            cleanedReply = executionResult;
+        }
+
+        return new ActionResult(cleanedReply, actionName);
     }
 }

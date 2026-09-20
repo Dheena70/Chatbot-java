@@ -2,12 +2,29 @@ intent,patterns,response
 greeting,hi|hello|hey|good morning|good evening|good afternoon|vanakkam|hi da|hello da|enna da|eppadi irukka,Hi there! I'm your assistant. How can I help you today? ;; Hello! Great to connect with you. What can I do for you today? ;; Hey there! How are you doing? Feel free to ask me anything.
 goodbye,bye|goodbye|see you|exit|quit|poitu varen|poren da|paakalam,Goodbye! Have a great day ahead.
 thanks,thanks|thank you|thx|appreciate it|nandri|thanks da|romba nandri,You're welcome! Happy to help.
-identity,who are you|what are you|your name|nee yaru|un peru enna|neenga yaru,I'm a simple rule-based chatbot built with plain Java. I process your messages and reply using predefined logic.
-capabilities,what can you do|help|what do you do|nee ennalam pannuva|enna panna mudiyum|un capability enna|nee enna panuva|nee eppadi help pannuva,I can chat with you about basic topics, answer simple questions, and demonstrate a keyword-based response system. Try asking about the weather, my creator, or just say hi!
+identity,who are you|what are you|your name|nee yaru|un peru enna|neenga yaru,I'm DevBot, your personal AI assistant built with Java. I can chat, answer questions via Gemini AI, and perform system tasks like opening apps, controlling volume, checking battery, taking screenshots, and managing your laptop!
+capabilities,what can you do|help|what do you do|nee ennalam pannuva|enna panna mudiyum|un capability enna|nee enna panuva|nee eppadi help pannuva,I am your personal Jarvis-style AI assistant! I can: 1. Launch apps (Notepad, Calculator, Paint, Task Manager, CMD, Settings) 2. Open YouTube, search Google 3. Adjust volume (up, down, mute) 4. Check battery percentage & C: drive free space 5. Take screenshots to your Desktop 6. Answer any coding, knowledge, or conversation question via Gemini AI!
 creator,who made you|who created you|your developer|who built you|unna yaru banachanga|unna yaru create pannanga|un developer yaru,I was built by Dheena as part of a full stack development project using Java and a built-in HTTP server.
 weather,weather|rain|sunny|temperature|mazhai|kaalanilai|veyil,I don't have live weather access right now, but I can be connected to a weather API in a future version!
 time,what time is it|current time|date today|today date|current date|time enna|ipo time enna|indha naaku date enna,The current time and date is {time}.
 joke,tell me a joke|make me laugh|joke|another joke|one more joke|next joke|tell me another joke|oru joke sollu|sirikka vekku|innoru joke,Why do cows wear bells? Because their horns don't work! ;; My wife told me to stop impersonating a flamingo. So I had to put my foot down! ;; Why don't scientists trust atoms? Because they make up everything! ;; What do you call a fake noodle? An impasta! ;; Why did the scarecrow win an award? Because he was outstanding in his field! ;; Why do Java developers wear glasses? Because they don't C#! ;; A SQL query walks into a bar, walks up to two tables, and asks: 'Can I join you?' ;; What do you call a bear with no teeth? A gummy bear! ;; Why did the bicycle fall over? Because it was two-tired! ;; Why do programmers prefer dark mode? Because light attracts bugs! ;; Why did the math book look sad? Because it had too many problems!
 mood,how are you|how are you doing|how do you feel|epdi iruka|eppadi irukeenga|nalla irukkeengala,I'm just a program, so I don't have feelings, but thanks for asking! How are you doing?
 cm_tamilnadu,who is cm of tamil nadu|who is cm of tn|cm of tamil nadu|chief minister of tamil nadu|tamil nadu cm|tamilnadu cm|cm yaar|cm yaaru|tamilnadu mudhalvar|cm,The current Chief Minister of Tamil Nadu is C. Joseph Vijay (Tamilaga Vettri Kazhagam - TVK). He assumed office on May 10, 2026, succeeding M. K. Stalin.
+jarvis_battery,battery|battery status|battery percentage|check battery|how much battery|battery percent,Sir, {battery}
+jarvis_disk,disk space|hard disk|c drive space|storage space|storage status|free disk space,Sir, {disk}
+jarvis_sysinfo,system specs|system info|system status|ram info|cpu info,Sir, {sysinfo}
+jarvis_screenshot,take screenshot|screenshot|capture screen|screen shot|snap screen,Sir, {screenshot}
+jarvis_vol_up,volume up|increase volume|louder|sound up|raise volume,{vol_up}
+jarvis_vol_down,volume down|decrease volume|lower volume|sound down|reduce volume,{vol_down}
+jarvis_mute,mute|unmute|mute sound|mute audio|silent,Sir, {vol_mute}
+jarvis_notepad,open notepad|launch notepad|start notepad|open notes,{notepad}
+jarvis_calc,open calc|open calculator|launch calculator|start calculator|open cal,{calc}
+jarvis_paint,open paint|launch paint|open mspaint|start paint,{paint}
+jarvis_taskmgr,open task manager|task manager|launch task manager|open taskmgr,{taskmgr}
+jarvis_cmd,open cmd|open command prompt|open terminal|launch cmd|start cmd,{cmd}
+jarvis_settings,open settings|windows settings|launch settings|open setting,{settings}
+jarvis_downloads,open downloads|downloads folder|show downloads|open download,{downloads}
+jarvis_desktop,open desktop|desktop folder|show desktop,{desktop}
+jarvis_youtube,open youtube|launch youtube|start youtube|youtube open,{youtube}
+jarvis_lock,lock laptop|lock pc|screen lock|lock screen|lock computer,{lock}
 fallback,,I'm not sure I understand that yet. Could you rephrase, or try asking about my creator, my capabilities, or just say hello?

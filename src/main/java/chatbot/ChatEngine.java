@@ -146,13 +146,64 @@ public class ChatEngine {
         return new ChatResult(formatDynamicResponse(bestIntent.pickResponse()), bestIntent.name, confidence);
     }
 
-    /** Replaces dynamic tokens like {time} or {date} with live system values. */
+    /** Replaces dynamic tokens like {time}, {battery}, {disk}, or system actions with live values and execution. */
     public static String formatDynamicResponse(String response) {
         if (response == null) return null;
         if (response.contains("{time}")) {
             ZonedDateTime now = ZonedDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a (EEEE, MMMM d, yyyy)");
             response = response.replace("{time}", now.format(formatter));
+        }
+        if (response.contains("{battery}")) {
+            response = response.replace("{battery}", SystemController.getBatteryStatus());
+        }
+        if (response.contains("{disk}")) {
+            response = response.replace("{disk}", SystemController.getDiskStatus());
+        }
+        if (response.contains("{sysinfo}")) {
+            response = response.replace("{sysinfo}", SystemController.getSystemInfo());
+        }
+        if (response.contains("{screenshot}")) {
+            response = response.replace("{screenshot}", SystemController.captureScreenshot());
+        }
+        if (response.contains("{vol_up}")) {
+            response = response.replace("{vol_up}", SystemController.changeVolume("up"));
+        }
+        if (response.contains("{vol_down}")) {
+            response = response.replace("{vol_down}", SystemController.changeVolume("down"));
+        }
+        if (response.contains("{vol_mute}")) {
+            response = response.replace("{vol_mute}", SystemController.changeVolume("mute"));
+        }
+        if (response.contains("{notepad}")) {
+            response = response.replace("{notepad}", SystemController.launchApp("notepad"));
+        }
+        if (response.contains("{calc}")) {
+            response = response.replace("{calc}", SystemController.launchApp("calc"));
+        }
+        if (response.contains("{paint}")) {
+            response = response.replace("{paint}", SystemController.launchApp("paint"));
+        }
+        if (response.contains("{taskmgr}")) {
+            response = response.replace("{taskmgr}", SystemController.launchApp("taskmgr"));
+        }
+        if (response.contains("{cmd}")) {
+            response = response.replace("{cmd}", SystemController.launchApp("cmd"));
+        }
+        if (response.contains("{settings}")) {
+            response = response.replace("{settings}", SystemController.launchApp("settings"));
+        }
+        if (response.contains("{downloads}")) {
+            response = response.replace("{downloads}", SystemController.openFolder("downloads"));
+        }
+        if (response.contains("{desktop}")) {
+            response = response.replace("{desktop}", SystemController.openFolder("desktop"));
+        }
+        if (response.contains("{lock}")) {
+            response = response.replace("{lock}", SystemController.lockWorkstation());
+        }
+        if (response.contains("{youtube}")) {
+            response = response.replace("{youtube}", SystemController.searchYouTube(null));
         }
         return response;
     }
