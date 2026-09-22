@@ -37,4 +37,17 @@ jarvis_screen_off,turn off screen|turn off display|screen off|monitor off|displa
 jarvis_close_notepad,close notepad|turn off notepad|exit notepad|notepad moodu|notepad-a close pannu,{close_notepad}
 jarvis_close_calc,close calculator|close calc|turn off calculator|calc moodu,{close_calc}
 jarvis_close_chrome,close chrome|turn off chrome|exit chrome|chrome-a moodu,{close_chrome}
+jarvis_whatsapp,open whatsapp|launch whatsapp|start whatsapp|whatsapp open|whatsapp open pannu,{whatsapp}
+jarvis_telegram,open telegram|launch telegram|start telegram|telegram open|telegram open pannu,{telegram}
+jarvis_instagram,open instagram|launch instagram|start instagram|instagram open|instagram open pannu,{instagram}
+jarvis_chatgpt,open chatgpt|launch chatgpt|start chatgpt|chatgpt open|chatgpt open pannu,{chatgpt}
+jarvis_vlc,open vlc|launch vlc|start vlc|open vlc player|vlc open|vlc open pannu,{vlc}
+jarvis_word,open word|launch word|start word|open ms word|word open,{word}
+jarvis_excel,open excel|launch excel|start excel|open ms excel|excel open,{excel}
+jarvis_filmora,open filmora|launch filmora|start filmora|open wondershare filmora|filmora open,{filmora}
+jarvis_canva,open canva|launch canva|start canva|canva open,{canva}
+jarvis_anydesk,open anydesk|launch anydesk|start anydesk|anydesk open,{anydesk}
+jarvis_angry_birds,open angry birds|launch angry birds|play angry birds|angry birds open,{angrybirds}
+jarvis_beach_buggy,open beach buggy|launch beach buggy|play beach buggy|beach buggy open,{beachbuggy}
+jarvis_solitaire,open solitaire|launch solitaire|play solitaire|solitaire open,{solitaire}
 fallback,,I'm not sure I understand that yet. Could you rephrase, or try asking about my creator, my capabilities, or just say hello?

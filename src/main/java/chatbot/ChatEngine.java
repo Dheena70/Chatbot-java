@@ -235,6 +235,45 @@ public class ChatEngine {
         if (response.contains("{close_chrome}")) {
             response = response.replace("{close_chrome}", SystemController.closeApp("chrome"));
         }
+        if (response.contains("{whatsapp}")) {
+            response = response.replace("{whatsapp}", SystemController.launchApp("whatsapp"));
+        }
+        if (response.contains("{telegram}")) {
+            response = response.replace("{telegram}", SystemController.launchApp("telegram"));
+        }
+        if (response.contains("{instagram}")) {
+            response = response.replace("{instagram}", SystemController.launchApp("instagram"));
+        }
+        if (response.contains("{chatgpt}")) {
+            response = response.replace("{chatgpt}", SystemController.launchApp("chatgpt"));
+        }
+        if (response.contains("{vlc}")) {
+            response = response.replace("{vlc}", SystemController.launchApp("vlc"));
+        }
+        if (response.contains("{word}")) {
+            response = response.replace("{word}", SystemController.launchApp("word"));
+        }
+        if (response.contains("{excel}")) {
+            response = response.replace("{excel}", SystemController.launchApp("excel"));
+        }
+        if (response.contains("{filmora}")) {
+            response = response.replace("{filmora}", SystemController.launchApp("filmora"));
+        }
+        if (response.contains("{canva}")) {
+            response = response.replace("{canva}", SystemController.launchApp("canva"));
+        }
+        if (response.contains("{anydesk}")) {
+            response = response.replace("{anydesk}", SystemController.launchApp("anydesk"));
+        }
+        if (response.contains("{angrybirds}")) {
+            response = response.replace("{angrybirds}", SystemController.launchApp("angry birds"));
+        }
+        if (response.contains("{beachbuggy}")) {
+            response = response.replace("{beachbuggy}", SystemController.launchApp("beach buggy"));
+        }
+        if (response.contains("{solitaire}")) {
+            response = response.replace("{solitaire}", SystemController.launchApp("solitaire"));
+        }
         return response;
     }
 

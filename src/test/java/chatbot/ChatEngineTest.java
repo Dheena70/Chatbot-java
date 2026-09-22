@@ -75,6 +75,18 @@ public class ChatEngineTest {
         ChatEngine.ChatResult scrOff = engine.getResponse("turn off screen");
         check("turn off screen matches 'jarvis_screen_off'", "jarvis_screen_off", scrOff.intent);
 
+        ChatEngine.ChatResult waRes = engine.getResponse("open whatsapp");
+        check("open whatsapp matches 'jarvis_whatsapp'", "jarvis_whatsapp", waRes.intent);
+
+        ChatEngine.ChatResult vlcRes = engine.getResponse("open vlc");
+        check("open vlc matches 'jarvis_vlc'", "jarvis_vlc", vlcRes.intent);
+
+        ChatEngine.ChatResult gptRes = engine.getResponse("open chatgpt");
+        check("open chatgpt matches 'jarvis_chatgpt'", "jarvis_chatgpt", gptRes.intent);
+
+        ChatEngine.ChatResult filRes = engine.getResponse("open filmora");
+        check("open filmora matches 'jarvis_filmora'", "jarvis_filmora", filRes.intent);
+
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
         if (failed > 0) {

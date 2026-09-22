@@ -32,40 +32,135 @@ public class SystemController {
     private static final Map<String, String> APP_ALIASES = new HashMap<>();
 
     static {
+        // Productivity
         APP_ALIASES.put("notepad", "notepad");
         APP_ALIASES.put("notes", "notepad");
         APP_ALIASES.put("calc", "calc");
         APP_ALIASES.put("calculator", "calc");
-        APP_ALIASES.put("paint", "mspaint");
-        APP_ALIASES.put("mspaint", "mspaint");
-        APP_ALIASES.put("cmd", "cmd");
-        APP_ALIASES.put("terminal", "cmd");
-        APP_ALIASES.put("powershell", "powershell");
-        APP_ALIASES.put("task manager", "taskmgr");
-        APP_ALIASES.put("taskmgr", "taskmgr");
         APP_ALIASES.put("chrome", "chrome");
+        APP_ALIASES.put("google chrome", "chrome");
         APP_ALIASES.put("browser", "chrome");
         APP_ALIASES.put("edge", "msedge");
-        APP_ALIASES.put("spotify", "spotify");
-        APP_ALIASES.put("settings", "ms-settings:");
+        APP_ALIASES.put("microsoft edge", "msedge");
+        APP_ALIASES.put("word", "shell:AppsFolder\\Microsoft.Office.WINWORD.EXE.15");
+        APP_ALIASES.put("ms word", "shell:AppsFolder\\Microsoft.Office.WINWORD.EXE.15");
+        APP_ALIASES.put("excel", "shell:AppsFolder\\Microsoft.Office.EXCEL.EXE.15");
+        APP_ALIASES.put("ms excel", "shell:AppsFolder\\Microsoft.Office.EXCEL.EXE.15");
+        APP_ALIASES.put("powerpoint", "shell:AppsFolder\\Microsoft.Office.POWERPNT.EXE.15");
+        APP_ALIASES.put("ppt", "shell:AppsFolder\\Microsoft.Office.POWERPNT.EXE.15");
+        APP_ALIASES.put("onenote", "shell:AppsFolder\\Microsoft.Office.ONENOTE.EXE.15");
+        APP_ALIASES.put("outlook", "shell:AppsFolder\\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows");
+        APP_ALIASES.put("acrobat", "shell:AppsFolder\\AcrobatReader");
+        APP_ALIASES.put("adobe acrobat", "shell:AppsFolder\\AcrobatReader");
+        APP_ALIASES.put("pdf", "shell:AppsFolder\\AcrobatReader");
+        APP_ALIASES.put("explorer", "explorer");
+        APP_ALIASES.put("file explorer", "explorer");
+
+        // Social
+        APP_ALIASES.put("whatsapp", "shell:AppsFolder\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App");
+        APP_ALIASES.put("whatsapp beta", "shell:AppsFolder\\5319275A.51895FA4EA97F_cv1g1gvanyjgm!App");
+        APP_ALIASES.put("telegram", "shell:AppsFolder\\TelegramMessengerLLP.TelegramDesktop_t4vj0pshhgkwm!Telegram.TelegramDesktop.Store");
+        APP_ALIASES.put("unigram", "shell:AppsFolder\\38833FF26BA1D.UnigramPreview_g9c9v27vpyspw!App");
+        APP_ALIASES.put("instagram", "shell:AppsFolder\\Facebook.InstagramBeta_8xx8rvfyw5nnt!App");
+
+        // Developer Tools & AI
+        APP_ALIASES.put("chatgpt", "shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App");
+        APP_ALIASES.put("perplexity", "shell:AppsFolder\\com.todesktop.25020447d4kq915");
         APP_ALIASES.put("vs code", "code");
         APP_ALIASES.put("vscode", "code");
         APP_ALIASES.put("code", "code");
-        APP_ALIASES.put("explorer", "explorer");
+        APP_ALIASES.put("visual studio code", "code");
+        APP_ALIASES.put("windsurf", "shell:AppsFolder\\Chrome._crx_afnjdehacipkkciagigebpiola");
+        APP_ALIASES.put("terminal", "wt");
+        APP_ALIASES.put("windows terminal", "wt");
+        APP_ALIASES.put("cmd", "cmd");
+        APP_ALIASES.put("powershell", "powershell");
+        APP_ALIASES.put("xampp", "C:\\xampp\\xampp-control.exe");
+        APP_ALIASES.put("zotero", "shell:AppsFolder\\Zotero.Zotero.7.0.27");
+
+        // Utilities & Tools
+        APP_ALIASES.put("snipping tool", "snippingtool");
+        APP_ALIASES.put("snippingtool", "snippingtool");
+        APP_ALIASES.put("snip", "snippingtool");
+        APP_ALIASES.put("settings", "ms-settings:");
+        APP_ALIASES.put("task manager", "taskmgr");
+        APP_ALIASES.put("taskmgr", "taskmgr");
+        APP_ALIASES.put("anydesk", "shell:AppsFolder\\prokzult ad");
+        APP_ALIASES.put("winrar", "C:\\Program Files\\WinRAR\\WinRAR.exe");
+
+        // Media & Creativity
+        APP_ALIASES.put("vlc", "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe");
+        APP_ALIASES.put("vlc media player", "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe");
+        APP_ALIASES.put("photos", "shell:AppsFolder\\Microsoft.Windows.Photos_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("camera", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("paint", "mspaint");
+        APP_ALIASES.put("mspaint", "mspaint");
+        APP_ALIASES.put("canva", "shell:AppsFolder\\com.canva.CanvaDesktop");
+        APP_ALIASES.put("filmora", "D:\\VE\\Wondershare\\Wondershare Filmora\\Wondershare Filmora Launcher.exe");
+        APP_ALIASES.put("filmora 15", "D:\\VE\\Wondershare\\Wondershare Filmora\\Wondershare Filmora Launcher.exe");
+        APP_ALIASES.put("wondershare filmora", "D:\\VE\\Wondershare\\Wondershare Filmora\\Wondershare Filmora Launcher.exe");
+        APP_ALIASES.put("spotify", "shell:AppsFolder\\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify");
+        APP_ALIASES.put("media player", "shell:AppsFolder\\Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic");
+        APP_ALIASES.put("sticky notes", "shell:AppsFolder\\Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("stickynotes", "shell:AppsFolder\\Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe!App");
+
+        // Games & Other
+        APP_ALIASES.put("angry birds", "shell:AppsFolder\\1ED5AEA5.4160926B82DB_p2gbknwb5d8r2!App");
+        APP_ALIASES.put("angry birds 2", "shell:AppsFolder\\1ED5AEA5.4160926B82DB_p2gbknwb5d8r2!App");
+        APP_ALIASES.put("beach buggy", "shell:AppsFolder\\VectorUnit.BeachBuggyRacing_hvbhrzr8672s2!App");
+        APP_ALIASES.put("beach buggy racing", "shell:AppsFolder\\VectorUnit.BeachBuggyRacing_hvbhrzr8672s2!App");
+        APP_ALIASES.put("solitaire", "shell:AppsFolder\\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("xbox", "shell:AppsFolder\\Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App");
+
+        // Accessibility
+        APP_ALIASES.put("narrator", "narrator");
+        APP_ALIASES.put("magnifier", "magnify");
+        APP_ALIASES.put("osk", "osk");
+        APP_ALIASES.put("keyboard", "osk");
+        APP_ALIASES.put("on-screen keyboard", "osk");
     }
 
-    /** Launches a desktop application by name or alias. */
+    /** Launches a desktop application by name, alias, or dynamic Start Menu search. */
     public static String launchApp(String appName) {
         if (appName == null || appName.isBlank()) {
             return "Application name cannot be empty.";
         }
         String cleanName = appName.trim().toLowerCase();
-        String command = APP_ALIASES.getOrDefault(cleanName, cleanName);
 
+        // 1. Direct Alias Match
+        String command = APP_ALIASES.get(cleanName);
+        if (command != null) {
+            try {
+                if (command.startsWith("shell:")) {
+                    new ProcessBuilder("explorer.exe", command).start();
+                } else if (command.contains(":\\")) {
+                    new ProcessBuilder(command).start();
+                } else {
+                    new ProcessBuilder("cmd.exe", "/c", "start", "", command).start();
+                }
+                return "Launching " + appName + ", Sir.";
+            } catch (IOException e) {
+                // fall through to dynamic PowerShell search
+            }
+        }
+
+        // 2. Dynamic Start Menu discovery via PowerShell Get-StartApps
         try {
-            new ProcessBuilder("cmd.exe", "/c", "start", "", command).start();
+            String psScript = "$apps = Get-StartApps;\n"
+                    + "$match = $apps | Where-Object { $_.Name -like '*" + cleanName.replace("'", "''") + "*' } | Select-Object -First 1;\n"
+                    + "if ($match) {\n"
+                    + "    Start-Process 'explorer.exe' ('shell:AppsFolder\\' + $match.AppID);\n"
+                    + "    Write-Output 'FOUND';\n"
+                    + "} else {\n"
+                    + "    Start-Process '" + cleanName.replace("'", "''") + "' -ErrorAction SilentlyContinue;\n"
+                    + "    Write-Output 'ATTEMPTED';\n"
+                    + "};\n";
+
+            String encoded = Base64.getEncoder().encodeToString(psScript.getBytes(StandardCharsets.UTF_16LE));
+            Process p = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded).start();
+            p.waitFor(3, java.util.concurrent.TimeUnit.SECONDS);
             return "Launching " + appName + ", Sir.";
-        } catch (IOException e) {
+        } catch (Exception e) {
             return "Could not launch " + appName + ": " + e.getMessage();
         }
     }
@@ -429,6 +524,38 @@ public class SystemController {
             case "powershell": procName = "powershell"; break;
             case "taskmgr":
             case "task manager": procName = "taskmgr"; break;
+            case "whatsapp": procName = "WhatsApp*"; break;
+            case "telegram": procName = "Telegram*"; break;
+            case "instagram": procName = "Instagram*"; break;
+            case "chatgpt": procName = "ChatGPT*"; break;
+            case "vlc":
+            case "vlc media player": procName = "vlc"; break;
+            case "anydesk": procName = "AnyDesk"; break;
+            case "canva": procName = "Canva*"; break;
+            case "snipping tool":
+            case "snippingtool": procName = "SnippingTool*"; break;
+            case "word": procName = "WINWORD"; break;
+            case "excel": procName = "EXCEL"; break;
+            case "powerpoint":
+            case "ppt": procName = "POWERPNT"; break;
+            case "onenote": procName = "ONENOTE"; break;
+            case "outlook": procName = "*Outlook*"; break;
+            case "winrar": procName = "WinRAR"; break;
+            case "perplexity": procName = "*Perplexity*"; break;
+            case "xampp": procName = "xampp*"; break;
+            case "zotero": procName = "zotero"; break;
+            case "photos": procName = "*Photos*"; break;
+            case "camera": procName = "*Camera*"; break;
+            case "sticky notes":
+            case "stickynotes": procName = "*StickyNotes*"; break;
+            case "filmora":
+            case "filmora 15":
+            case "wondershare filmora": procName = "*Filmora*"; break;
+            case "angry birds":
+            case "angry birds 2": procName = "*AngryBirds*"; break;
+            case "beach buggy":
+            case "beach buggy racing": procName = "*BeachBuggy*"; break;
+            case "solitaire": procName = "*Solitaire*"; break;
             default: procName = clean; break;
         }
 
