@@ -163,14 +163,14 @@ function updateAutoListenUI() {
     autoListenToggle.classList.add('active');
     autoListenToggle.title = "ChatGPT Voice Mode: ACTIVE (Listening after reply). Click to turn off.";
     if (startVoiceChatBtn) {
-      startVoiceChatBtn.textContent = "🛑 Stop Voice Mode";
+      startVoiceChatBtn.innerHTML = '<svg class="chip-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" fill="currentColor"/></svg><span>Stop Voice Mode</span>';
       startVoiceChatBtn.classList.add('chip-highlight');
     }
   } else {
     autoListenToggle.classList.remove('active');
     autoListenToggle.title = "ChatGPT Voice Mode: OFF (Click to enable continuous voice conversation)";
     if (startVoiceChatBtn) {
-      startVoiceChatBtn.textContent = "🎙️ Hands-free Voice Mode";
+      startVoiceChatBtn.innerHTML = '<svg class="chip-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg><span>Hands-free Voice Mode</span>';
     }
   }
 }
@@ -248,7 +248,7 @@ function speakJarvis(text, onComplete) {
       .replace(/`([^`]+)`/g, '$1')
       .replace(/https?:\/\/\S+/g, '')
       .replace(/[*#_~>]/g, '')
-      .replace(/⚡.*?Action:.*?\n/gi, '')
+      .replace(/.*?Action:.*?\n/gi, '')
       .trim();
 
     if (!speechText) {
@@ -408,7 +408,10 @@ function renderQueueUI() {
     let attBadge = '';
     if (item.attachments && item.attachments.length > 0) {
       const hasImg = item.attachments.some(a => a.isImage);
-      attBadge = ` <span style="opacity:0.75; font-size:11px; margin-left:4px;">${hasImg ? '🖼️' : '📎'} (${item.attachments.length})</span>`;
+      const attSvg = hasImg
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+      attBadge = ` <span style="opacity:0.85; font-size:11px; margin-left:6px; display:inline-flex; align-items:center;">${attSvg}${item.attachments.length}</span>`;
     }
     div.innerHTML = `
       <div class="queue-item-left">
@@ -416,8 +419,12 @@ function renderQueueUI() {
         <span class="queue-item-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}${attBadge}</span>
       </div>
       <div class="queue-item-actions">
-        <button type="button" class="queue-action-btn btn-edit" title="Edit this queued command">✏️</button>
-        <button type="button" class="queue-action-btn btn-remove" title="Remove from queue">✕</button>
+        <button type="button" class="queue-action-btn btn-edit" title="Edit this queued command">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button type="button" class="queue-action-btn btn-remove" title="Remove from queue">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     `;
     div.querySelector('.btn-edit').addEventListener('click', () => {
@@ -506,20 +513,27 @@ function startInlineEdit(bubble, oldText) {
 
 // --- Attachment Helper Functions ---
 function getFileIcon(name) {
-  if (!name) return '📁';
+  if (!name) return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>';
   const ext = name.toLowerCase().split('.').pop();
   switch (ext) {
-    case 'pdf': return '📕';
-    case 'doc': case 'docx': return '📘';
-    case 'xls': case 'xlsx': case 'csv': return '📊';
-    case 'ppt': case 'pptx': return '📙';
-    case 'zip': case 'rar': case '7z': case 'tar': case 'gz': return '🗜️';
+    case 'pdf':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>';
+    case 'doc': case 'docx': case 'txt': case 'md': case 'log': case 'rtf':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+    case 'xls': case 'xlsx': case 'csv':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>';
+    case 'ppt': case 'pptx':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+    case 'zip': case 'rar': case '7z': case 'tar': case 'gz':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>';
     case 'java': case 'py': case 'js': case 'ts': case 'html': case 'css':
     case 'json': case 'cpp': case 'c': case 'sql': case 'sh': case 'bat':
-    case 'xml': case 'yaml': case 'yml': return '💻';
-    case 'txt': case 'md': case 'log': return '📄';
-    case 'png': case 'jpg': case 'jpeg': case 'webp': case 'gif': case 'svg': case 'bmp': return '🖼️';
-    default: return '📁';
+    case 'xml': case 'yaml': case 'yml':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+    case 'png': case 'jpg': case 'jpeg': case 'webp': case 'gif': case 'svg': case 'bmp':
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    default:
+      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>';
   }
 }
 
@@ -625,7 +639,7 @@ function renderAttachmentPreviews() {
     } else {
       const badge = document.createElement('div');
       badge.className = 'attachment-icon-badge';
-      badge.textContent = getFileIcon(att.name);
+      badge.innerHTML = getFileIcon(att.name);
       chip.appendChild(badge);
     }
 
@@ -641,7 +655,7 @@ function renderAttachmentPreviews() {
     removeBtn.type = 'button';
     removeBtn.className = 'attachment-remove';
     removeBtn.title = 'Remove attachment';
-    removeBtn.textContent = '✕';
+    removeBtn.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     removeBtn.addEventListener('click', () => {
       pendingAttachments.splice(idx, 1);
       renderAttachmentPreviews();
@@ -762,7 +776,7 @@ function renderMessage(text, sender, actionExecuted, time, attachments) {
   if (sender === 'bot' && actionExecuted) {
     const badge = document.createElement('div');
     badge.className = 'action-badge';
-    badge.innerHTML = '⚡ <span>Jarvis Action:</span> ' + escapeHtml(actionExecuted);
+    badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> <span>Jarvis Action:</span> ' + escapeHtml(actionExecuted);
     content.appendChild(badge);
   }
 
@@ -831,7 +845,7 @@ function renderMessage(text, sender, actionExecuted, time, attachments) {
     copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(text);
-      copyBtn.innerHTML = '✓ Copied';
+      copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied';
       setTimeout(() => {
         copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
       }, 1500);
@@ -918,7 +932,7 @@ async function runTask(text, isVoice = false, attachments = []) {
     }
   } catch (err) {
     typingEl.remove();
-    const errMsg = "⚠️ Couldn't reach the server. Please check if DevBot backend is active.";
+    const errMsg = "Could not reach the server. Please check if DevBot backend is active.";
     const botTime = getTimeString();
     renderMessage(errMsg, 'bot', null, botTime);
     appendHistory(errMsg, 'bot', null, botTime);

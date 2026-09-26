@@ -134,11 +134,16 @@ body.light .bubble code{ background:rgba(0,0,0,0.06); }
   background:var(--bubble-bg); border:1px solid var(--panel-border); color:var(--text-dim);
   border-radius:20px; padding:7px 14px; font-size:13px; white-space:nowrap; cursor:pointer;
   transition:all .2s ease; font-family:inherit; flex-shrink:0;
+  display:inline-flex; align-items:center; gap:7px;
+}
+.chip-svg{
+  flex-shrink:0; opacity:0.85; transition:opacity .15s ease;
 }
 .chip:hover{
   color:var(--text); border-color:rgba(91,141,239,0.5); background:rgba(91,141,239,0.14);
   transform:translateY(-1px);
 }
+.chip:hover .chip-svg{ opacity:1; }
 .chip.chip-highlight{
   background:rgba(63,209,201,0.12); border-color:rgba(63,209,201,0.4);
   color:var(--cyan); font-weight:600;
@@ -488,11 +493,19 @@ body.light .attach-menu-item:hover {
   color: var(--blue);
 }
 .attach-menu-icon {
-  font-size: 18px;
-  width: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(63, 209, 201, 0.12);
+  color: var(--cyan);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+body.light .attach-menu-icon {
+  background: rgba(91, 141, 239, 0.12);
+  color: var(--blue);
 }
 .attach-menu-text {
   display: flex;

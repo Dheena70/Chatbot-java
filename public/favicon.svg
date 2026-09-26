@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="jarvisGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3fd1c9"/>
+      <stop offset="100%" stop-color="#5b8def"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="#090c14"/>
+  <circle cx="16" cy="16" r="11" stroke="url(#jarvisGlow)" stroke-width="2" stroke-dasharray="2 3"/>
+  <circle cx="16" cy="16" r="7" stroke="#3fd1c9" stroke-width="1.8"/>
+  <polygon points="17 9 10 17 15 17 14 23 21 15 16 15 17 9" fill="#3fd1c9"/>
+</svg>
