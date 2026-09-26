@@ -164,6 +164,8 @@ public class ChatbotServer {
                         }
                     } else if ("play".equals(actionExecuted)) {
                         actionExecuted = "Playing Music";
+                    } else if ("spotify".equals(actionExecuted)) {
+                        actionExecuted = "Spotify Music";
                     }
                 }
 
@@ -530,6 +532,10 @@ public class ChatbotServer {
             case "search_youtube":
                 executionResult = SystemController.searchYouTube(param);
                 actionName = "Playing: " + param;
+                break;
+            case "play_spotify":
+                executionResult = SystemController.playSpotify(param);
+                actionName = "Spotify: " + param;
                 break;
             case "search_google":
                 executionResult = SystemController.searchGoogle(param);

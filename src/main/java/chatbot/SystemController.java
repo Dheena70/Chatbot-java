@@ -290,6 +290,51 @@ public class SystemController {
     }
 
     /**
+     * Finds and plays a song/album/artist directly on Spotify with instant playback.
+     * Opens Spotify directly to search the track, focuses Spotify, and simulates
+     * pressing Enter to start playing the music automatically!
+     */
+    public static String playSpotify(String query) {
+        if (query == null || query.isBlank()) {
+            launchApp("spotify");
+            return "Opened Spotify for you, Sir! 🎧";
+        }
+        String cleanQuery = query.trim()
+                .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                .replaceAll("(?i)\\s+(?:on|in|from)\\s+spotify", "")
+                .replaceAll("(?i)\\s*spotify(?:\\s+la)?\\s*", "")
+                .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                .trim();
+        if (cleanQuery.isEmpty()) cleanQuery = query.trim();
+
+        try {
+            String encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8).replace("+", "%20");
+            new ProcessBuilder("explorer.exe", "spotify:search:" + encoded).start();
+
+            // Background automation to ensure the track plays
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2200);
+                    activateAppWindow("Spotify");
+                    Thread.sleep(400);
+
+                    // Press Enter in Spotify to trigger playback of top search result
+                    Robot robot = new Robot();
+                    robot.keyPress(KeyEvent.VK_ENTER);
+                    robot.keyRelease(KeyEvent.VK_ENTER);
+                } catch (Exception e) {
+                    System.err.println("Spotify autoplay helper error: " + e.getMessage());
+                }
+            }).start();
+
+            return "Playing \"" + cleanQuery + "\" on Spotify, Sir! 🎧";
+        } catch (Exception e) {
+            openUrl("https://open.spotify.com/search/" + URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8));
+            return "Opened Spotify for \"" + cleanQuery + "\", Sir.";
+        }
+    }
+
+    /**
      * Changes master audio volume on Windows.
      * direction: "up", "down", or "mute"
      */

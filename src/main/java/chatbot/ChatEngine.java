@@ -138,8 +138,25 @@ public class ChatEngine {
         }
 
         if (bestIntent == null) {
-            if (normalized.startsWith("play ") && normalized.length() > 5) {
-                String songQuery = message.trim().replaceAll("(?i)^(?:play|listen to)\\s+", "").trim();
+            String lower = normalized;
+            boolean isSpotify = lower.contains("spotify");
+            boolean isYouTube = lower.contains("youtube") || lower.contains("you tube");
+
+            if (isSpotify) {
+                String songQuery = message.trim()
+                        .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                        .replaceAll("(?i)\\s+(?:on|in|from)\\s+spotify", "")
+                        .replaceAll("(?i)\\s*spotify(?:\\s+la)?\\s*", "")
+                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                        .trim();
+                return new ChatResult(SystemController.playSpotify(songQuery), "jarvis_spotify", 1.0);
+            } else if (isYouTube || lower.startsWith("play ")) {
+                String songQuery = message.trim()
+                        .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                        .replaceAll("(?i)\\s+(?:on|in|from)\\s+youtube", "")
+                        .replaceAll("(?i)\\s*youtube(?:\\s+la)?\\s*", "")
+                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                        .trim();
                 return new ChatResult(SystemController.playYouTube(songQuery), "jarvis_play", 1.0);
             }
             return new ChatResult(formatDynamicResponse(fallbackResponse, message), "fallback", 0.0);
