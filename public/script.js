@@ -11,8 +11,14 @@ const startVoiceChatBtn = document.getElementById('startVoiceChatBtn');
 const voiceToggle = document.getElementById('voiceToggle');
 const voiceIcon = document.getElementById('voiceIcon');
 const micBtn = document.getElementById('micBtn');
+const queuePanel = document.getElementById('queuePanel');
+const queueList = document.getElementById('queueList');
+const queueCount = document.getElementById('queueCount');
+const clearQueueBtn = document.getElementById('clearQueueBtn');
 
-// --- Session ID ---
+// --- Command Execution & Queue State ---
+let isExecuting = false;
+const taskQueue = []; // Array of { id, text, isVoice }
 function getSessionId() {
   let id = localStorage.getItem('chatbot_session_id');
   if (!id) {
@@ -315,8 +321,8 @@ if (SpeechRecognition && micBtn) {
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
     if (transcript && transcript.trim()) {
-      messageInput.value = transcript;
-      sendMessage(transcript, true);
+      messageInput.value = '';
+      enqueueTask(transcript, true);
     }
   };
 
@@ -365,6 +371,109 @@ function formatMessage(text) {
   return escaped;
 }
 
+// --- Command Queue UI Management ---
+function renderQueueUI() {
+  if (!queuePanel || !queueList || !queueCount) return;
+  if (taskQueue.length === 0) {
+    queuePanel.style.display = 'none';
+    return;
+  }
+  queuePanel.style.display = 'block';
+  queueCount.textContent = taskQueue.length;
+  queueList.innerHTML = '';
+  taskQueue.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.innerHTML = `
+      <div class="queue-item-left">
+        <span class="queue-item-idx">#${index + 1}</span>
+        <span class="queue-item-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</span>
+      </div>
+      <div class="queue-item-actions">
+        <button type="button" class="queue-action-btn btn-edit" title="Edit this queued command">✏️</button>
+        <button type="button" class="queue-action-btn btn-remove" title="Remove from queue">✕</button>
+      </div>
+    `;
+    div.querySelector('.btn-edit').addEventListener('click', () => {
+      taskQueue.splice(index, 1);
+      renderQueueUI();
+      messageInput.value = item.text;
+      messageInput.focus();
+    });
+    div.querySelector('.btn-remove').addEventListener('click', () => {
+      taskQueue.splice(index, 1);
+      renderQueueUI();
+    });
+    queueList.appendChild(div);
+  });
+}
+
+if (clearQueueBtn) {
+  clearQueueBtn.addEventListener('click', () => {
+    taskQueue.length = 0;
+    renderQueueUI();
+  });
+}
+
+function startInlineEdit(bubble, oldText) {
+  const origHtml = bubble.innerHTML;
+  bubble.innerHTML = '';
+
+  const editBox = document.createElement('div');
+  editBox.className = 'bubble-edit-box';
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'bubble-edit-input';
+  textarea.value = oldText;
+  textarea.rows = 2;
+
+  const actions = document.createElement('div');
+  actions.className = 'bubble-edit-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-cancel-edit';
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => {
+    bubble.innerHTML = origHtml;
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn-save-edit';
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Save & Run';
+  saveBtn.addEventListener('click', () => {
+    const newText = textarea.value.trim();
+    if (newText) {
+      bubble.textContent = newText;
+      const found = chatHistory.find(h => h.sender === 'user' && h.text === oldText);
+      if (found) {
+        found.text = newText;
+        saveHistory();
+      }
+      enqueueTask(newText, false);
+    } else {
+      bubble.innerHTML = origHtml;
+    }
+  });
+
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveBtn.click();
+    } else if (e.key === 'Escape') {
+      cancelBtn.click();
+    }
+  });
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  editBox.appendChild(textarea);
+  editBox.appendChild(actions);
+  bubble.appendChild(editBox);
+  textarea.focus();
+}
+
 function renderMessage(text, sender, actionExecuted, time) {
   const msg = document.createElement('div');
   msg.className = 'msg ' + sender;
@@ -386,13 +495,44 @@ function renderMessage(text, sender, actionExecuted, time) {
   } else {
     bubble.textContent = text;
   }
+  content.appendChild(bubble);
+
+  // Message metadata & action buttons (Edit & Copy)
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
 
   const timeEl = document.createElement('span');
   timeEl.className = 'msg-time';
   timeEl.textContent = time || getTimeString();
+  meta.appendChild(timeEl);
 
-  content.appendChild(bubble);
-  content.appendChild(timeEl);
+  if (sender === 'user') {
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'msg-action-btn edit-msg-btn';
+    editBtn.title = 'Edit and re-run this command';
+    editBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Edit';
+    editBtn.addEventListener('click', () => {
+      startInlineEdit(bubble, text);
+    });
+    meta.appendChild(editBtn);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'msg-action-btn copy-msg-btn';
+    copyBtn.title = 'Copy command text';
+    copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(text);
+      copyBtn.innerHTML = '✓ Copied';
+      setTimeout(() => {
+        copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+      }, 1500);
+    });
+    meta.appendChild(copyBtn);
+  }
+
+  content.appendChild(meta);
   msg.appendChild(content);
 
   chatWindow.appendChild(msg);
@@ -409,16 +549,26 @@ function addTypingIndicator() {
   return msg;
 }
 
-async function sendMessage(text, isVoice = false) {
-  if (!text || messageInput.disabled) return;
+function enqueueTask(text, isVoice = false) {
+  if (!text || !text.trim()) return;
+  const clean = text.trim();
+  if (isExecuting) {
+    taskQueue.push({
+      id: 'task-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      text: clean,
+      isVoice
+    });
+    renderQueueUI();
+  } else {
+    runTask(clean, isVoice);
+  }
+}
 
+async function runTask(text, isVoice = false) {
+  isExecuting = true;
   const timeNow = getTimeString();
-  // 1. Render & Store user message (voice or typed)
   renderMessage(text, 'user', null, timeNow);
   appendHistory(text, 'user', null, timeNow);
-
-  messageInput.value = '';
-  messageInput.disabled = true;
 
   const typingEl = addTypingIndicator();
 
@@ -433,19 +583,17 @@ async function sendMessage(text, isVoice = false) {
 
     const botTime = getTimeString();
     if (res.ok) {
-      // 2. Render & Store bot response
       renderMessage(data.reply, 'bot', data.actionExecuted, botTime);
       appendHistory(data.reply, 'bot', data.actionExecuted, botTime);
-      // 3. Only respond in voice if user spoke in voice!
       if (isVoice) {
-        speakJarvis(data.reply);
+        await new Promise(resolve => speakJarvis(data.reply, resolve));
       }
     } else {
       const err = data.error || "Something went wrong.";
       renderMessage(err, 'bot', null, botTime);
       appendHistory(err, 'bot', null, botTime);
       if (isVoice) {
-        speakJarvis(err);
+        await new Promise(resolve => speakJarvis(err, resolve));
       }
     }
   } catch (err) {
@@ -455,19 +603,32 @@ async function sendMessage(text, isVoice = false) {
     renderMessage(errMsg, 'bot', null, botTime);
     appendHistory(errMsg, 'bot', null, botTime);
     if (isVoice) {
-      speakJarvis(errMsg);
+      await new Promise(resolve => speakJarvis(errMsg, resolve));
     }
   } finally {
-    messageInput.disabled = false;
-    messageInput.focus();
+    isExecuting = false;
+    if (taskQueue.length > 0) {
+      const nextTask = taskQueue.shift();
+      renderQueueUI();
+      runTask(nextTask.text, nextTask.isVoice);
+    } else {
+      renderQueueUI();
+    }
   }
+}
+
+// Keep sendMessage as alias to enqueueTask
+function sendMessage(text, isVoice = false) {
+  enqueueTask(text, isVoice);
 }
 
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
   if (text) {
-    sendMessage(text, false);
+    messageInput.value = '';
+    messageInput.focus();
+    enqueueTask(text, false);
   }
 });
 
@@ -477,7 +638,7 @@ document.querySelectorAll('.chip').forEach(chip => {
   chip.addEventListener('click', () => {
     const msg = chip.getAttribute('data-msg');
     if (msg) {
-      sendMessage(msg, false);
+      enqueueTask(msg, false);
     }
   });
 });

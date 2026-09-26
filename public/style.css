@@ -186,3 +186,228 @@ body.light .bubble code{ background:rgba(0,0,0,0.06); }
   .quick-chips{ padding:6px 16px 12px; }
   .chat-input{ padding:14px 16px; }
 }
+
+/* --- Command Queue Panel --- */
+.queue-panel {
+  margin: 0 24px 8px;
+  background: rgba(13, 18, 32, 0.88);
+  border: 1px solid rgba(63, 209, 201, 0.3);
+  border-radius: 14px;
+  padding: 10px 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  animation: slide-up 0.25s ease-out;
+}
+body.light .queue-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(91, 141, 239, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.queue-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.queue-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.queue-count {
+  background: rgba(63, 209, 201, 0.2);
+  color: var(--cyan);
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.queue-clear-all {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all .15s ease;
+}
+.queue-clear-all:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.queue-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  flex: 1;
+}
+.queue-item-idx {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 700;
+  min-width: 18px;
+}
+.queue-item-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.queue-item-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.queue-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+}
+.queue-action-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.queue-action-btn.btn-remove:hover {
+  color: #ef4444;
+}
+
+/* --- Message Meta & Edit Action --- */
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.msg.user .msg-meta {
+  justify-content: flex-end;
+}
+.msg-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: all .15s ease;
+}
+.msg:hover .msg-action-btn {
+  opacity: 1;
+}
+.msg-action-btn:hover {
+  color: var(--cyan);
+  background: rgba(63, 209, 201, 0.12);
+}
+
+/* --- Inline Bubble Edit Box --- */
+.bubble-edit-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bubble-edit-input {
+  width: 100%;
+  min-height: 48px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+body.light .bubble-edit-input {
+  background: #ffffff;
+  color: #1c2333;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+.bubble-edit-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.bubble-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.btn-save-edit, .btn-cancel-edit {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-save-edit {
+  background: var(--cyan);
+  color: #090c14;
+}
+.btn-save-edit:hover {
+  background: #5be5de;
+}
+.btn-cancel-edit {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+}
+.btn-cancel-edit:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+
