@@ -93,6 +93,9 @@ public class SystemController {
         APP_ALIASES.put("snippingtool", "snippingtool");
         APP_ALIASES.put("snip", "snippingtool");
         APP_ALIASES.put("settings", "ms-settings:");
+        APP_ALIASES.put("clock", "shell:AppsFolder\\Microsoft.WindowsAlarms_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("alarm", "shell:AppsFolder\\Microsoft.WindowsAlarms_8wekyb3d8bbwe!App");
+        APP_ALIASES.put("alarms", "shell:AppsFolder\\Microsoft.WindowsAlarms_8wekyb3d8bbwe!App");
         APP_ALIASES.put("task manager", "taskmgr");
         APP_ALIASES.put("taskmgr", "taskmgr");
         APP_ALIASES.put("anydesk", "shell:AppsFolder\\prokzult ad");
@@ -289,6 +292,20 @@ public class SystemController {
         return playYouTube(query);
     }
 
+    /** Launches any URL or Windows URI protocol scheme (spotify, whatsapp, ms-settings, ms-clock, http, https, etc.) */
+    public static void launchProtocolUri(String uri) {
+        if (uri == null || uri.isBlank()) return;
+        try {
+            new ProcessBuilder("cmd.exe", "/c", "start", "", uri).start();
+        } catch (Exception e) {
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                    Desktop.getDesktop().browse(URI.create(uri));
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
     /**
      * Finds and plays a song/album/artist directly on Spotify with instant playback.
      * Opens Spotify directly to search the track, focuses Spotify, and simulates
@@ -300,23 +317,27 @@ public class SystemController {
             return "Opened Spotify for you, Sir! 🎧";
         }
         String cleanQuery = query.trim()
-                .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                .replaceAll("(?i)^(?:play|listen to|start|put|play a)\\s+", "")
                 .replaceAll("(?i)\\s+(?:on|in|from)\\s+spotify", "")
                 .replaceAll("(?i)\\s*spotify(?:\\s+la)?\\s*", "")
-                .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|songs?|music)\\s*$", "")
                 .trim();
-        if (cleanQuery.isEmpty()) cleanQuery = query.trim();
+        if (cleanQuery.isEmpty() || cleanQuery.equalsIgnoreCase("songs") || cleanQuery.equalsIgnoreCase("music")) {
+            cleanQuery = "top hits";
+        }
 
         try {
             String encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8).replace("+", "%20");
-            new ProcessBuilder("explorer.exe", "spotify:search:" + encoded).start();
+            launchApp("spotify");
+            launchProtocolUri("spotify:search:" + encoded);
+            openUrl("https://open.spotify.com/search/" + encoded);
 
             // Background automation to ensure the track plays
             new Thread(() -> {
                 try {
-                    Thread.sleep(2200);
+                    Thread.sleep(2500);
                     activateAppWindow("Spotify");
-                    Thread.sleep(400);
+                    Thread.sleep(500);
 
                     // Press Enter in Spotify to trigger playback of top search result
                     Robot robot = new Robot();
@@ -429,9 +450,10 @@ public class SystemController {
         if (appName == null || appName.isBlank()) return;
         try {
             String clean = appName.trim().replaceAll("['\"]", "");
-            new ProcessBuilder("powershell.exe", "-NoProfile", "-Command",
-                    "$ws = New-Object -ComObject WScript.Shell; $ws.AppActivate('" + clean + "')")
-                    .start();
+            String ps = "$ws = New-Object -ComObject WScript.Shell;\n"
+                    + "$ws.AppActivate('" + clean + "');\n";
+            String encoded = Base64.getEncoder().encodeToString(ps.getBytes(StandardCharsets.UTF_16LE));
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded).start();
         } catch (Exception ignored) {}
     }
 
@@ -805,7 +827,7 @@ public class SystemController {
     public static String setAlarm(String timeStr, String label) {
         String cleanLabel = (label == null || label.isBlank()) ? "Alarm" : label.trim();
         try {
-            new ProcessBuilder("explorer.exe", "ms-clock:alarm").start();
+            launchProtocolUri("ms-clock:alarm");
             return "Windows Alarms & Clock opened for " + (timeStr != null ? timeStr : "your alarm") + " (" + cleanLabel + "), Sir.";
         } catch (Exception e) {
             return "Failed to open Clock app: " + e.getMessage();
@@ -830,7 +852,7 @@ public class SystemController {
                 if (cleanPhone.length() >= 7) {
                     // It's a phone number: use direct protocol
                     String encodedMsg = URLEncoder.encode(cleanMessage, StandardCharsets.UTF_8).replace("+", "%20");
-                    new ProcessBuilder("explorer.exe", "whatsapp://send?phone=" + cleanPhone + "&text=" + encodedMsg).start();
+                    launchProtocolUri("whatsapp://send?phone=" + cleanPhone + "&text=" + encodedMsg);
 
                     // Wait for WhatsApp to open and load the chat
                     Thread.sleep(3000);
