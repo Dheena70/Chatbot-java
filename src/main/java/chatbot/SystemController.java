@@ -5,6 +5,8 @@ import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -12,12 +14,18 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 
 /**
@@ -224,14 +232,61 @@ public class SystemController {
         return openUrl("https://www.google.com/search?q=" + encoded);
     }
 
-    /** Searches or plays a query on YouTube. */
-    public static String searchYouTube(String query) {
+    /**
+     * Finds and plays a song/video directly on YouTube with automatic playback.
+     * Scrapes the top video ID from the search results and opens the direct watch URL
+     * with autoplay=1 so the user doesn't have to manually click anything!
+     */
+    public static String playYouTube(String query) {
         if (query == null || query.isBlank()) {
             return openUrl("https://www.youtube.com");
         }
-        String encoded = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
+        String cleanQuery = query.trim();
+        String searchQuery = cleanQuery.replaceAll("(?i)^(?:play|put|search|start|listen to)\\s+", "").trim();
+        if (searchQuery.isEmpty()) searchQuery = cleanQuery;
+
+        try {
+            String encoded = URLEncoder.encode(searchQuery, StandardCharsets.UTF_8);
+            String searchUrl = "https://www.youtube.com/results?search_query=" + encoded;
+
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.ALWAYS)
+                    .connectTimeout(Duration.ofSeconds(4))
+                    .build();
+
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(searchUrl))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200) {
+                String html = resp.body();
+                Pattern pattern = Pattern.compile("\"videoId\":\"([a-zA-Z0-9_-]{11})\"");
+                Matcher matcher = pattern.matcher(html);
+                if (matcher.find()) {
+                    String videoId = matcher.group(1);
+                    String watchUrl = "https://www.youtube.com/watch?v=" + videoId + "&autoplay=1";
+                    openUrl(watchUrl);
+                    return "Playing \"" + cleanQuery + "\" directly on YouTube, Sir! 🎶";
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Direct YouTube autoplay lookup error: " + e.getMessage());
+        }
+
+        // Fallback: If scraping failed, open search results
+        String encoded = URLEncoder.encode(cleanQuery, StandardCharsets.UTF_8);
         openUrl("https://www.youtube.com/results?search_query=" + encoded);
-        return "Playing/Searching \"" + query.trim() + "\" on YouTube, Sir.";
+        return "Opened YouTube for \"" + cleanQuery + "\", Sir.";
+    }
+
+    /** Searches or plays a query on YouTube. Directly autoplays the video! */
+    public static String searchYouTube(String query) {
+        return playYouTube(query);
     }
 
     /**
@@ -712,24 +767,86 @@ public class SystemController {
         }
     }
 
-    /** Opens WhatsApp Desktop with drafted message ready to send. */
+    /**
+     * Autonomously sends a WhatsApp message to a phone number or contact name.
+     * Types and presses ENTER automatically so the user does NOT have to send it manually!
+     */
     public static String sendWhatsApp(String target, String message) {
         if (message == null || message.isBlank()) {
             return "Please specify the message content to send, Sir.";
         }
-        try {
-            String cleanTarget = target != null ? target.replaceAll("[^0-9+]", "") : "";
-            String encodedMsg = URLEncoder.encode(message, StandardCharsets.UTF_8).replace("+", "%20");
-            String uri;
-            if (!cleanTarget.isEmpty()) {
-                uri = "whatsapp://send?phone=" + cleanTarget + "&text=" + encodedMsg;
-            } else {
-                uri = "whatsapp://send?text=" + encodedMsg;
+        String cleanMessage = message.trim();
+        String cleanPhone = (target != null) ? target.trim().replaceAll("[^0-9+]", "") : "";
+        String contactName = (target != null && !target.isBlank()) ? target.trim() : "contact";
+
+        new Thread(() -> {
+            try {
+                Robot robot = new Robot();
+                if (cleanPhone.length() >= 7) {
+                    // It's a phone number: use direct protocol
+                    String encodedMsg = URLEncoder.encode(cleanMessage, StandardCharsets.UTF_8).replace("+", "%20");
+                    new ProcessBuilder("explorer.exe", "whatsapp://send?phone=" + cleanPhone + "&text=" + encodedMsg).start();
+
+                    // Wait for WhatsApp to open and load the chat
+                    Thread.sleep(3000);
+                    activateAppWindow("WhatsApp");
+                    Thread.sleep(500);
+
+                    // Press Enter to automatically send the message!
+                    robot.keyPress(KeyEvent.VK_ENTER);
+                    robot.keyRelease(KeyEvent.VK_ENTER);
+                } else {
+                    // It's a contact name (e.g. Karthik, Mom, etc.):
+                    launchApp("whatsapp");
+                    Thread.sleep(2200);
+                    activateAppWindow("WhatsApp");
+                    Thread.sleep(400);
+
+                    // Press Ctrl + F to focus search
+                    robot.keyPress(KeyEvent.VK_CONTROL);
+                    robot.keyPress(KeyEvent.VK_F);
+                    robot.keyRelease(KeyEvent.VK_F);
+                    robot.keyRelease(KeyEvent.VK_CONTROL);
+                    Thread.sleep(600);
+
+                    // Paste contact name into search bar
+                    setClipboardText(contactName);
+                    robot.keyPress(KeyEvent.VK_CONTROL);
+                    robot.keyPress(KeyEvent.VK_V);
+                    robot.keyRelease(KeyEvent.VK_V);
+                    robot.keyRelease(KeyEvent.VK_CONTROL);
+                    Thread.sleep(1200);
+
+                    // Press Enter to open the top matched contact
+                    robot.keyPress(KeyEvent.VK_ENTER);
+                    robot.keyRelease(KeyEvent.VK_ENTER);
+                    Thread.sleep(800);
+
+                    // Paste the message into the chat compose box
+                    setClipboardText(cleanMessage);
+                    robot.keyPress(KeyEvent.VK_CONTROL);
+                    robot.keyPress(KeyEvent.VK_V);
+                    robot.keyRelease(KeyEvent.VK_V);
+                    robot.keyRelease(KeyEvent.VK_CONTROL);
+                    Thread.sleep(400);
+
+                    // Press Enter to send the message!
+                    robot.keyPress(KeyEvent.VK_ENTER);
+                    robot.keyRelease(KeyEvent.VK_ENTER);
+                }
+            } catch (Exception e) {
+                System.err.println("Autonomous WhatsApp send error: " + e.getMessage());
             }
-            new ProcessBuilder("explorer.exe", uri).start();
-            return "WhatsApp opened with your drafted message for " + (cleanTarget.isEmpty() ? (target != null ? target : "recipient") : cleanTarget) + ", Sir.";
-        } catch (Exception e) {
-            return "Failed to dispatch WhatsApp message: " + e.getMessage();
-        }
+        }).start();
+
+        return "Sending WhatsApp message to " + contactName + ": \"" + cleanMessage + "\", Sir!";
+    }
+
+    /** Helper to set system clipboard text safely. */
+    private static void setClipboardText(String text) {
+        try {
+            StringSelection selection = new StringSelection(text);
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+        } catch (Exception ignored) {}
     }
 }

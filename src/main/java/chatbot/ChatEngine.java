@@ -138,6 +138,10 @@ public class ChatEngine {
         }
 
         if (bestIntent == null) {
+            if (normalized.startsWith("play ") && normalized.length() > 5) {
+                String songQuery = message.trim().replaceAll("(?i)^(?:play|listen to)\\s+", "").trim();
+                return new ChatResult(SystemController.playYouTube(songQuery), "jarvis_play", 1.0);
+            }
             return new ChatResult(formatDynamicResponse(fallbackResponse, message), "fallback", 0.0);
         }
 

@@ -162,6 +162,8 @@ public class ChatbotServer {
                         if (target != null && !target.isBlank()) {
                             actionExecuted = "Screenshot: " + target;
                         }
+                    } else if ("play".equals(actionExecuted)) {
+                        actionExecuted = "Playing Music";
                     }
                 }
 
@@ -527,7 +529,7 @@ public class ChatbotServer {
                 break;
             case "search_youtube":
                 executionResult = SystemController.searchYouTube(param);
-                actionName = "YouTube: " + param;
+                actionName = "Playing: " + param;
                 break;
             case "search_google":
                 executionResult = SystemController.searchGoogle(param);
