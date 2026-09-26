@@ -64,24 +64,112 @@ public class AiClient {
         }
     }
 
+    /** File or photo attachment sent along with the prompt. */
+    public static class Attachment {
+        public final String name;
+        public final String mimeType;
+        public final String base64;
+        public final String textContent;
+
+        public Attachment(String name, String mimeType, String base64, String textContent) {
+            this.name = name != null ? name : "file";
+            this.mimeType = mimeType != null ? mimeType : "application/octet-stream";
+            this.base64 = base64;
+            this.textContent = textContent;
+        }
+
+        public boolean isImage() {
+            return (mimeType != null && mimeType.startsWith("image/")) ||
+                    name.toLowerCase().matches(".*\\.(png|jpg|jpeg|webp|gif|bmp|svg)$");
+        }
+
+        public boolean isPdf() {
+            return "application/pdf".equalsIgnoreCase(mimeType) || name.toLowerCase().endsWith(".pdf");
+        }
+    }
+
     /** Single-shot call with no conversation history. */
     public String ask(String userMessage) throws IOException, InterruptedException {
-        return ask(userMessage, List.of());
+        return ask(userMessage, List.of(), List.of());
+    }
+
+    /** Overload for backward compatibility without attachments. */
+    public String ask(String userMessage, List<Turn> history) throws IOException, InterruptedException {
+        return ask(userMessage, history, List.of());
     }
 
     /**
-     * Sends the user's message to Gemini — including up to a few prior turns of
-     * this session for context — and returns the reply text. Automatically tries
-     * candidate models if one is under temporary high demand (503) or deprecated (404).
+     * Sends the user's message and any attached photos or files to Gemini —
+     * including up to a few prior turns of this session for context — and returns the reply text.
+     * Automatically tries candidate models if one is under temporary high demand (503) or deprecated (404).
      */
-    public String ask(String userMessage, List<Turn> history) throws IOException, InterruptedException {
+    public String ask(String userMessage, List<Turn> history, List<Attachment> attachments) throws IOException, InterruptedException {
         StringBuilder contents = new StringBuilder("[");
         for (Turn turn : history) {
             contents.append("{\"role\":\"").append(turn.role).append("\",")
                     .append("\"parts\":[{\"text\":\"").append(escapeJson(turn.text)).append("\"}]},");
         }
-        contents.append("{\"role\":\"user\",\"parts\":[{\"text\":\"")
-                .append(escapeJson(userMessage)).append("\"}]}]");
+
+        // Build parts for user message
+        StringBuilder userParts = new StringBuilder("[");
+
+        // 1. Full text including code/document content if attached
+        StringBuilder fullTextMessage = new StringBuilder();
+        if (userMessage != null && !userMessage.isBlank()) {
+            fullTextMessage.append(userMessage.trim());
+        }
+
+        if (attachments != null) {
+            for (Attachment att : attachments) {
+                if (att.textContent != null && !att.textContent.isBlank()) {
+                    if (fullTextMessage.length() > 0) fullTextMessage.append("\n\n");
+                    fullTextMessage.append("--- Attached File: ").append(att.name).append(" ---\n");
+                    if (att.textContent.length() > 50000) {
+                        fullTextMessage.append(att.textContent.substring(0, 50000)).append("\n...[file truncated due to size]");
+                    } else {
+                        fullTextMessage.append(att.textContent);
+                    }
+                    fullTextMessage.append("\n--- End of Attached File ---");
+                }
+            }
+        }
+
+        if (fullTextMessage.length() == 0) {
+            fullTextMessage.append("Please inspect and analyze the attached file or image in detail, Sir.");
+        }
+
+        userParts.append("{\"text\":\"").append(escapeJson(fullTextMessage.toString())).append("\"}");
+
+        // 2. Multimodal media parts (Images, PDFs) via inlineData
+        if (attachments != null) {
+            for (Attachment att : attachments) {
+                if (att.base64 != null && !att.base64.isBlank()) {
+                    String cleanBase64 = att.base64.trim();
+                    if (cleanBase64.contains(",")) {
+                        cleanBase64 = cleanBase64.substring(cleanBase64.indexOf(',') + 1).trim();
+                    }
+                    String mime = att.mimeType;
+                    if (mime == null || mime.isBlank() || mime.equals("application/octet-stream")) {
+                        String lowerName = att.name.toLowerCase();
+                        if (lowerName.endsWith(".png")) mime = "image/png";
+                        else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) mime = "image/jpeg";
+                        else if (lowerName.endsWith(".webp")) mime = "image/webp";
+                        else if (lowerName.endsWith(".gif")) mime = "image/gif";
+                        else if (lowerName.endsWith(".pdf")) mime = "application/pdf";
+                        else mime = "image/jpeg";
+                    }
+
+                    userParts.append(",{\"inlineData\":{\"mimeType\":\"")
+                            .append(escapeJson(mime))
+                            .append("\",\"data\":\"")
+                            .append(escapeJson(cleanBase64))
+                            .append("\"}}");
+                }
+            }
+        }
+        userParts.append("]");
+
+        contents.append("{\"role\":\"user\",\"parts\":").append(userParts).append("}]");
         String systemInstruction = "{\"parts\":[{\"text\":\"You are DevBot (JARVIS), an advanced autonomous Jarvis-like Personal AI Assistant with real control over the user's Windows laptop, created by Dheena. "
                 + "The current year is 2026. The Chief Minister of Tamil Nadu is C. Joseph Vijay (TVK), who assumed office on May 10, 2026. "
                 + "You have full power to execute computer tasks on the laptop by starting your reply with an action tag:\\n"
@@ -110,6 +198,7 @@ public class AiClient {
                 + "CRITICAL RULE: When the user asks you to turn ON, turn OFF, open, or close something (e.g. Wi-Fi, Bluetooth, Mute, Volume, Dark Mode, Apps, Screen), NEVER just open the Settings screen or take them to a location! ALWAYS execute the direct action tag so the feature is turned ON or turned OFF directly by you without requiring the user to do anything!\\n"
                 + "CRITICAL BROWSER RULE: NEVER open the browser or search Google/YouTube when the user asks to open an app, software, game, or tool! If the user says 'open antigravity' or 'open antigravity ide', use [ACTION:open_app:antigravity]! Do NOT treat casual words like 'unna' as opening Antigravity! NEVER redirect app opening commands to the browser!\\n"
                 + "CRITICAL OS ASSISTANT & SELF-HEALING RULE: You are the user's personal AI assistant with full system OS control. Execute all tasks requested (sending messages, setting alarms, running system scripts, managing software). If an error occurs, you will receive a diagnostic error notification to autonomously fix it!\\n"
+                + "CRITICAL MULTIMODAL & FILE ANALYSIS: You can see and analyze photos, screenshots, images, PDFs, code files, and documents attached by the user. If they provide an image or file, examine it thoroughly, answer their questions, extract text/data, troubleshoot errors shown in screenshots, and if appropriate, execute necessary Windows actions to solve the user's issue!\\n"
                 + "Always answer in a polite, highly capable, loyal Jarvis persona (calling the user Sir or Dheena). "
                 + "When the user asks you to do ANY laptop task, ALWAYS choose the best action tag (use [ACTION:powershell:...] for general/custom tasks) so it gets performed live on their computer! "
                 + "If no system action is requested, reply normally without any [ACTION] tag.\"}]}";

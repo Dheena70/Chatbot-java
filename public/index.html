@@ -65,6 +65,10 @@
       <button type="button" class="chip" data-msg="Tell me a joke">😄 Tell me a joke</button>
     </div>
 
+    <div class="attachment-preview-bar" id="attachmentPreviewBar" style="display: none;">
+      <div class="attachment-chips-list" id="attachmentChipsList"></div>
+    </div>
+
     <div class="queue-panel" id="queuePanel" style="display: none;">
       <div class="queue-header">
         <div class="queue-title">
@@ -78,6 +82,50 @@
     </div>
 
     <form class="chat-input" id="chatForm" autocomplete="off">
+      <div class="attach-wrapper">
+        <button type="button" class="attach-btn" id="attachBtn" aria-label="Attach photos or files" title="Attach photos, files, or documents (+)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <div class="attach-menu" id="attachMenu" style="display: none;">
+          <button type="button" class="attach-menu-item" data-type="image">
+            <span class="attach-menu-icon">🖼️</span>
+            <div class="attach-menu-text">
+              <span class="attach-menu-title">Photos & Images</span>
+              <span class="attach-menu-desc">PNG, JPG, WebP, GIF, SVG</span>
+            </div>
+          </button>
+          <button type="button" class="attach-menu-item" data-type="document">
+            <span class="attach-menu-icon">📄</span>
+            <div class="attach-menu-text">
+              <span class="attach-menu-title">Documents</span>
+              <span class="attach-menu-desc">PDF, Word, Text, CSV</span>
+            </div>
+          </button>
+          <button type="button" class="attach-menu-item" data-type="code">
+            <span class="attach-menu-icon">💻</span>
+            <div class="attach-menu-text">
+              <span class="attach-menu-title">Code & Data</span>
+              <span class="attach-menu-desc">Java, Python, JS, JSON</span>
+            </div>
+          </button>
+          <button type="button" class="attach-menu-item" data-type="all">
+            <span class="attach-menu-icon">📁</span>
+            <div class="attach-menu-text">
+              <span class="attach-menu-title">All Files</span>
+              <span class="attach-menu-desc">Browse any file from PC</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" multiple style="display: none;" />
+
+      <input type="text" id="messageInput" placeholder="Speak, type, or attach photos/files for Jarvis, Sir..." />
+
       <button type="button" class="mic-btn" id="micBtn" aria-label="Speak to Jarvis" title="Click to speak (Microphone)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
@@ -85,11 +133,23 @@
           <line x1="12" y1="19" x2="12" y2="22"/>
         </svg>
       </button>
-      <input type="text" id="messageInput" placeholder="Speak or type a command for Jarvis, Sir..." required />
-      <button type="submit" aria-label="Send">
+
+      <button type="submit" id="sendBtn" aria-label="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
       </button>
     </form>
+  </div>
+
+  <!-- Fullscreen Lightbox Modal for Photo Attachments -->
+  <div class="lightbox-modal" id="lightboxModal" style="display: none;">
+    <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+    <div class="lightbox-content">
+      <img id="lightboxImg" src="" alt="Fullscreen Preview" />
+      <div class="lightbox-bar">
+        <span id="lightboxCaption"></span>
+        <button type="button" class="lightbox-close" id="lightboxClose" title="Close preview">✕</button>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>

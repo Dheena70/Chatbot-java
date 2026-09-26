@@ -16,9 +16,22 @@ const queueList = document.getElementById('queueList');
 const queueCount = document.getElementById('queueCount');
 const clearQueueBtn = document.getElementById('clearQueueBtn');
 
+// --- Attachment Elements & State ---
+const attachBtn = document.getElementById('attachBtn');
+const attachMenu = document.getElementById('attachMenu');
+const fileInput = document.getElementById('fileInput');
+const attachmentPreviewBar = document.getElementById('attachmentPreviewBar');
+const attachmentChipsList = document.getElementById('attachmentChipsList');
+const lightboxModal = document.getElementById('lightboxModal');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxCaption = document.getElementById('lightboxCaption');
+const lightboxClose = document.getElementById('lightboxClose');
+const lightboxBackdrop = document.getElementById('lightboxBackdrop');
+let pendingAttachments = []; // Array of { id, name, size, type, isImage, isPdf, isText, dataUrl, base64, textContent }
+
 // --- Command Execution & Queue State ---
 let isExecuting = false;
-const taskQueue = []; // Array of { id, text, isVoice }
+const taskQueue = []; // Array of { id, text, isVoice, attachments }
 function getSessionId() {
   let id = localStorage.getItem('chatbot_session_id');
   if (!id) {
@@ -96,12 +109,20 @@ function saveHistory() {
   }
 }
 
-function appendHistory(text, sender, actionExecuted, time) {
+function appendHistory(text, sender, actionExecuted, time, attachments) {
   chatHistory.push({
     text,
     sender,
     actionExecuted: actionExecuted || null,
-    time: time || getTimeString()
+    time: time || getTimeString(),
+    attachments: (attachments && attachments.length > 0) ? attachments.map(a => ({
+      name: a.name,
+      size: a.size,
+      type: a.type,
+      isImage: !!a.isImage,
+      isPdf: !!a.isPdf,
+      thumb: a.isImage && a.dataUrl && a.dataUrl.length < 60000 ? a.dataUrl : null
+    })) : null
   });
   // Cap history to 100 messages to prevent excessive storage
   if (chatHistory.length > 100) chatHistory.shift();
@@ -384,10 +405,15 @@ function renderQueueUI() {
   taskQueue.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'queue-item';
+    let attBadge = '';
+    if (item.attachments && item.attachments.length > 0) {
+      const hasImg = item.attachments.some(a => a.isImage);
+      attBadge = ` <span style="opacity:0.75; font-size:11px; margin-left:4px;">${hasImg ? '🖼️' : '📎'} (${item.attachments.length})</span>`;
+    }
     div.innerHTML = `
       <div class="queue-item-left">
         <span class="queue-item-idx">#${index + 1}</span>
-        <span class="queue-item-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</span>
+        <span class="queue-item-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}${attBadge}</span>
       </div>
       <div class="queue-item-actions">
         <button type="button" class="queue-action-btn btn-edit" title="Edit this queued command">✏️</button>
@@ -398,6 +424,10 @@ function renderQueueUI() {
       taskQueue.splice(index, 1);
       renderQueueUI();
       messageInput.value = item.text;
+      if (item.attachments && item.attachments.length > 0) {
+        pendingAttachments = [...item.attachments];
+        renderAttachmentPreviews();
+      }
       messageInput.focus();
     });
     div.querySelector('.btn-remove').addEventListener('click', () => {
@@ -474,7 +504,255 @@ function startInlineEdit(bubble, oldText) {
   textarea.focus();
 }
 
-function renderMessage(text, sender, actionExecuted, time) {
+// --- Attachment Helper Functions ---
+function getFileIcon(name) {
+  if (!name) return '📁';
+  const ext = name.toLowerCase().split('.').pop();
+  switch (ext) {
+    case 'pdf': return '📕';
+    case 'doc': case 'docx': return '📘';
+    case 'xls': case 'xlsx': case 'csv': return '📊';
+    case 'ppt': case 'pptx': return '📙';
+    case 'zip': case 'rar': case '7z': case 'tar': case 'gz': return '🗜️';
+    case 'java': case 'py': case 'js': case 'ts': case 'html': case 'css':
+    case 'json': case 'cpp': case 'c': case 'sql': case 'sh': case 'bat':
+    case 'xml': case 'yaml': case 'yml': return '💻';
+    case 'txt': case 'md': case 'log': return '📄';
+    case 'png': case 'jpg': case 'jpeg': case 'webp': case 'gif': case 'svg': case 'bmp': return '🖼️';
+    default: return '📁';
+  }
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function isTextFileName(name) {
+  if (!name) return false;
+  return /\.(txt|java|py|js|ts|html|css|json|md|csv|xml|sql|log|yaml|yml|bat|sh|c|cpp|h|ini|conf)$/i.test(name);
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+async function processFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const files = Array.from(fileList);
+
+  for (const file of files) {
+    if (file.size > 25 * 1024 * 1024) {
+      alert(`File "${file.name}" exceeds the 25MB limit.`);
+      continue;
+    }
+
+    const isImage = file.type.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif|bmp|svg)$/i.test(file.name);
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const isText = isTextFileName(file.name) || file.type.startsWith('text/');
+
+    const item = {
+      id: 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      name: file.name,
+      size: file.size,
+      type: file.type || (isImage ? 'image/jpeg' : (isPdf ? 'application/pdf' : 'text/plain')),
+      isImage,
+      isPdf,
+      isText,
+      dataUrl: null,
+      base64: null,
+      textContent: null
+    };
+
+    if (isImage || isPdf) {
+      const dataUrl = await readFileAsDataURL(file);
+      item.dataUrl = dataUrl;
+      const comma = dataUrl.indexOf(',');
+      item.base64 = comma !== -1 ? dataUrl.substring(comma + 1) : dataUrl;
+    } else if (isText) {
+      const text = await readFileAsText(file);
+      item.textContent = text;
+    } else {
+      const dataUrl = await readFileAsDataURL(file);
+      item.dataUrl = dataUrl;
+      const comma = dataUrl.indexOf(',');
+      item.base64 = comma !== -1 ? dataUrl.substring(comma + 1) : dataUrl;
+    }
+
+    pendingAttachments.push(item);
+  }
+
+  renderAttachmentPreviews();
+}
+
+function renderAttachmentPreviews() {
+  if (!attachmentPreviewBar || !attachmentChipsList) return;
+  if (pendingAttachments.length === 0) {
+    attachmentPreviewBar.style.display = 'none';
+    attachmentChipsList.innerHTML = '';
+    return;
+  }
+
+  attachmentPreviewBar.style.display = 'block';
+  attachmentChipsList.innerHTML = '';
+
+  pendingAttachments.forEach((att, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'attachment-chip';
+
+    if (att.isImage && att.dataUrl) {
+      const img = document.createElement('img');
+      img.className = 'attachment-thumb';
+      img.src = att.dataUrl;
+      img.alt = att.name;
+      chip.appendChild(img);
+    } else {
+      const badge = document.createElement('div');
+      badge.className = 'attachment-icon-badge';
+      badge.textContent = getFileIcon(att.name);
+      chip.appendChild(badge);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'attachment-info';
+    info.innerHTML = `
+      <span class="attachment-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</span>
+      <span class="attachment-size">${formatBytes(att.size)}</span>
+    `;
+    chip.appendChild(info);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'attachment-remove';
+    removeBtn.title = 'Remove attachment';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => {
+      pendingAttachments.splice(idx, 1);
+      renderAttachmentPreviews();
+    });
+    chip.appendChild(removeBtn);
+
+    attachmentChipsList.appendChild(chip);
+  });
+}
+
+function clearAttachments() {
+  pendingAttachments = [];
+  renderAttachmentPreviews();
+  if (fileInput) fileInput.value = '';
+}
+
+// --- Lightbox Modal Controls ---
+function openLightbox(imgSrc, caption) {
+  if (!lightboxModal || !lightboxImg) return;
+  lightboxImg.src = imgSrc;
+  if (lightboxCaption) lightboxCaption.textContent = caption || 'Photo Preview';
+  lightboxModal.style.display = 'flex';
+}
+
+function closeLightbox() {
+  if (!lightboxModal) return;
+  lightboxModal.style.display = 'none';
+  if (lightboxImg) lightboxImg.src = '';
+}
+
+if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+if (lightboxBackdrop) lightboxBackdrop.addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// --- Attach Button & Menu Handlers ---
+if (attachBtn && attachMenu) {
+  attachBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isShowing = attachMenu.style.display === 'flex';
+    attachMenu.style.display = isShowing ? 'none' : 'flex';
+    attachBtn.classList.toggle('active', !isShowing);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!attachMenu.contains(e.target) && e.target !== attachBtn && !attachBtn.contains(e.target)) {
+      attachMenu.style.display = 'none';
+      attachBtn.classList.remove('active');
+    }
+  });
+
+  document.querySelectorAll('.attach-menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const type = item.getAttribute('data-type');
+      if (fileInput) {
+        if (type === 'image') {
+          fileInput.accept = 'image/*';
+        } else if (type === 'document') {
+          fileInput.accept = '.pdf,.doc,.docx,.txt,.csv,.rtf,.odt';
+        } else if (type === 'code') {
+          fileInput.accept = '.java,.py,.js,.ts,.html,.css,.json,.md,.sql,.sh,.bat,.xml,.yaml,.yml';
+        } else {
+          fileInput.accept = '*/*';
+        }
+        fileInput.click();
+      }
+      attachMenu.style.display = 'none';
+      attachBtn.classList.remove('active');
+    });
+  });
+}
+
+if (fileInput) {
+  fileInput.addEventListener('change', (e) => {
+    processFiles(e.target.files);
+  });
+}
+
+// --- Drag & Drop onto Chat Window ---
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.body.classList.add('drag-active');
+});
+window.addEventListener('dragleave', (e) => {
+  if (!e.relatedTarget) {
+    document.body.classList.remove('drag-active');
+  }
+});
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('drag-active');
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    processFiles(e.dataTransfer.files);
+  }
+});
+
+// --- Clipboard Paste (e.g. Win+Shift+S screenshot or copied file) ---
+document.addEventListener('paste', (e) => {
+  if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+    const files = Array.from(e.clipboardData.files);
+    const hasImage = files.some(f => f.type.startsWith('image/'));
+    if (hasImage) {
+      e.preventDefault();
+    }
+    processFiles(files);
+  }
+});
+
+function renderMessage(text, sender, actionExecuted, time, attachments) {
   const msg = document.createElement('div');
   msg.className = 'msg ' + sender;
 
@@ -486,6 +764,35 @@ function renderMessage(text, sender, actionExecuted, time) {
     badge.className = 'action-badge';
     badge.innerHTML = '⚡ <span>Jarvis Action:</span> ' + escapeHtml(actionExecuted);
     content.appendChild(badge);
+  }
+
+  // Render attached images or file cards
+  if (attachments && attachments.length > 0) {
+    const attContainer = document.createElement('div');
+    attContainer.className = 'msg-attachments';
+    attachments.forEach(att => {
+      if (att.isImage) {
+        const img = document.createElement('img');
+        img.className = 'msg-attachment-img';
+        img.src = att.dataUrl || att.thumb || '';
+        img.alt = escapeHtml(att.name);
+        img.title = 'Click to enlarge: ' + escapeHtml(att.name);
+        img.addEventListener('click', () => {
+          openLightbox(att.dataUrl || att.thumb || '', att.name);
+        });
+        attContainer.appendChild(img);
+      } else {
+        const fileCard = document.createElement('div');
+        fileCard.className = 'msg-attachment-file';
+        fileCard.innerHTML = `
+          <span class="msg-attachment-file-icon">${getFileIcon(att.name)}</span>
+          <span class="msg-attachment-file-name">${escapeHtml(att.name)}</span>
+          <span class="msg-attachment-file-size">${formatBytes(att.size)}</span>
+        `;
+        attContainer.appendChild(fileCard);
+      }
+    });
+    content.appendChild(attContainer);
   }
 
   const bubble = document.createElement('div');
@@ -549,34 +856,47 @@ function addTypingIndicator() {
   return msg;
 }
 
-function enqueueTask(text, isVoice = false) {
-  if (!text || !text.trim()) return;
-  const clean = text.trim();
+function enqueueTask(text, isVoice = false, attachments = []) {
+  if ((!text || !text.trim()) && (!attachments || attachments.length === 0)) return;
+  const clean = text ? text.trim() : (attachments[0].isImage ? "Please analyze this attached photo/image, Sir." : "Please inspect this attached file, Sir.");
   if (isExecuting) {
     taskQueue.push({
       id: 'task-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       text: clean,
-      isVoice
+      isVoice,
+      attachments: attachments || []
     });
     renderQueueUI();
   } else {
-    runTask(clean, isVoice);
+    runTask(clean, isVoice, attachments);
   }
 }
 
-async function runTask(text, isVoice = false) {
+async function runTask(text, isVoice = false, attachments = []) {
   isExecuting = true;
   const timeNow = getTimeString();
-  renderMessage(text, 'user', null, timeNow);
-  appendHistory(text, 'user', null, timeNow);
+  renderMessage(text, 'user', null, timeNow, attachments);
+  appendHistory(text, 'user', null, timeNow, attachments);
 
   const typingEl = addTypingIndicator();
 
   try {
+    const payload = {
+      message: text,
+      sessionId,
+      attachments: (attachments || []).map(a => ({
+        name: a.name,
+        type: a.type,
+        size: a.size,
+        base64: a.base64 || '',
+        textContent: a.textContent || ''
+      }))
+    };
+
     const res = await fetch(API_BASE + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, sessionId })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     typingEl.remove();
@@ -610,7 +930,7 @@ async function runTask(text, isVoice = false) {
     if (taskQueue.length > 0) {
       const nextTask = taskQueue.shift();
       renderQueueUI();
-      runTask(nextTask.text, nextTask.isVoice);
+      runTask(nextTask.text, nextTask.isVoice, nextTask.attachments);
     } else {
       renderQueueUI();
     }
@@ -625,11 +945,16 @@ function sendMessage(text, isVoice = false) {
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = messageInput.value.trim();
-  if (text) {
-    messageInput.value = '';
-    messageInput.focus();
-    enqueueTask(text, false);
-  }
+  if (!text && pendingAttachments.length === 0) return;
+
+  const taskText = text || (pendingAttachments[0].isImage ? "Please analyze this attached photo/image, Sir." : "Please inspect this attached file, Sir.");
+  const attachmentsToSend = [...pendingAttachments];
+
+  messageInput.value = '';
+  clearAttachments();
+  messageInput.focus();
+
+  enqueueTask(taskText, false, attachmentsToSend);
 });
 
 // --- Quick suggestion chips ---
@@ -649,7 +974,7 @@ function initChatHistory() {
   if (chatHistory.length > 0) {
     chatWindow.innerHTML = '';
     for (const item of chatHistory) {
-      renderMessage(item.text, item.sender, item.actionExecuted, item.time);
+      renderMessage(item.text, item.sender, item.actionExecuted, item.time, item.attachments);
     }
   } else {
     // If no previous history, show the welcoming message

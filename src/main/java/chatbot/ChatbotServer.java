@@ -120,30 +120,37 @@ public class ChatbotServer {
 
                 String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                 String message = extractJsonStringField(body, "message");
+                List<AiClient.Attachment> attachments = extractAttachments(body);
                 String sessionId = getOrCreateSessionId(exchange, body);
 
-                if (message == null || message.isBlank()) {
-                    sendJson(exchange, 400, "{\"error\":\"Message cannot be empty.\"}", sessionId);
+                if ((message == null || message.isBlank()) && attachments.isEmpty()) {
+                    sendJson(exchange, 400, "{\"error\":\"Message or attachment cannot be empty.\"}", sessionId);
                     return;
+                }
+
+                if (message == null || message.isBlank()) {
+                    message = "Please analyze this attached " + (attachments.get(0).isImage() ? "photo / image" : "file") + ", Sir.";
                 }
 
                 ChatEngine.ChatResult result = engine.getResponse(message);
                 String reply = result.reply;
                 String intent = result.intent;
 
-                // Route to AI when local matching found nothing, weak match, or for jokes for infinite variety.
-                boolean needsAi = ("fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
+                // Route to AI when attachments are present, or local matching found nothing, weak match, or for jokes.
+                boolean needsAi = (!attachments.isEmpty() || "fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
                         && aiClient.isConfigured();
 
                 if (needsAi) {
                     try {
                         List<AiClient.Turn> history = List.copyOf(
                                 sessionHistory.getOrDefault(sessionId, new ArrayDeque<>()));
-                        reply = aiClient.ask(message, history);
-                        intent = "ai";
+                        reply = aiClient.ask(message, history, attachments);
+                        intent = attachments.isEmpty() ? "ai" : "ai_multimodal";
                     } catch (Exception e) {
-                        System.err.println("AI fallback failed: " + e.getMessage());
-                        // Keep the original canned/local reply on failure.
+                        System.err.println("AI fallback/multimodal failed: " + e.getMessage());
+                        if (!attachments.isEmpty()) {
+                            reply = "I received your attached file (" + attachments.get(0).name + "), Sir, but encountered an issue processing it with the vision engine: " + e.getMessage();
+                        }
                     }
                 }
 
@@ -353,6 +360,53 @@ public class ChatbotServer {
         exchange.sendResponseHeaders(204, -1);
     }
 
+    /** Helper to parse the attachments array from the incoming JSON body. */
+    static List<AiClient.Attachment> extractAttachments(String json) {
+        List<AiClient.Attachment> list = new ArrayList<>();
+        if (json == null) return list;
+        int attIdx = json.indexOf("\"attachments\"");
+        if (attIdx == -1) return list;
+        int arrStart = json.indexOf('[', attIdx);
+        if (arrStart == -1) return list;
+
+        int depth = 0;
+        int objStart = -1;
+        for (int i = arrStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '"') {
+                i++;
+                while (i < json.length()) {
+                    if (json.charAt(i) == '\\') {
+                        i += 2;
+                    } else if (json.charAt(i) == '"') {
+                        break;
+                    } else {
+                        i++;
+                    }
+                }
+                continue;
+            }
+            if (c == '{') {
+                if (depth == 0) objStart = i;
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0 && objStart != -1) {
+                    String objJson = json.substring(objStart, i + 1);
+                    String name = extractJsonStringField(objJson, "name");
+                    String type = extractJsonStringField(objJson, "type");
+                    String base64 = extractJsonStringField(objJson, "base64");
+                    String text = extractJsonStringField(objJson, "textContent");
+                    list.add(new AiClient.Attachment(name, type, base64, text));
+                    objStart = -1;
+                }
+            } else if (c == ']' && depth == 0) {
+                break;
+            }
+        }
+        return list;
+    }
+
     /** Very small helper to pull a string field out of a flat JSON body like {"message":"hi"}. */
     private static String extractJsonStringField(String json, String field) {
         String key = "\"" + field + "\"";
@@ -369,19 +423,33 @@ public class ChatbotServer {
             if (c == '\\' && i + 1 < json.length()) {
                 i++;
                 char next = json.charAt(i);
-                if (next == 'u' && i + 4 < json.length()) {
-                    String hex = json.substring(i + 1, i + 5);
-                    try {
-                        c = (char) Integer.parseInt(hex, 16);
-                        i += 4;
-                    } catch (NumberFormatException ex) {
-                        c = next;
-                    }
-                } else {
-                    c = next;
+                switch (next) {
+                    case 'n': sb.append('\n'); break;
+                    case 't': sb.append('\t'); break;
+                    case 'r': sb.append('\r'); break;
+                    case 'b': sb.append('\b'); break;
+                    case 'f': sb.append('\f'); break;
+                    case '"': sb.append('"'); break;
+                    case '\\': sb.append('\\'); break;
+                    case '/': sb.append('/'); break;
+                    case 'u':
+                        if (i + 4 < json.length()) {
+                            String hex = json.substring(i + 1, i + 5);
+                            try {
+                                sb.append((char) Integer.parseInt(hex, 16));
+                                i += 4;
+                            } catch (NumberFormatException ex) {
+                                sb.append('u');
+                            }
+                        } else {
+                            sb.append('u');
+                        }
+                        break;
+                    default: sb.append(next);
                 }
+            } else {
+                sb.append(c);
             }
-            sb.append(c);
             i++;
         }
         return sb.toString();
