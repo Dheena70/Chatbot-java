@@ -141,22 +141,31 @@ public class ChatEngine {
             String lower = normalized;
             boolean isSpotify = lower.contains("spotify");
             boolean isYouTube = lower.contains("youtube") || lower.contains("you tube");
+            boolean isSongRequest = isYouTube || isSpotify
+                    || lower.contains("song") || lower.contains("songs") || lower.contains("music")
+                    || lower.contains("paatu") || lower.contains("paattu") || lower.contains("track")
+                    || lower.contains("jukebox") || lower.contains("album")
+                    || lower.startsWith("play ") || lower.contains("play pannu") || lower.contains("plat pandra")
+                    || lower.contains("play panra") || lower.contains("play pandra") || lower.contains("song podu");
 
             if (isSpotify) {
                 String songQuery = message.trim()
-                        .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                        .replaceAll("(?i)^(?:play|listen to|start|put|play a|ethachum|ethavathu|oru|nalla|konjam)\\s+", "")
                         .replaceAll("(?i)\\s+(?:on|in|from)\\s+spotify", "")
                         .replaceAll("(?i)\\s*spotify(?:\\s+la)?\\s*", "")
-                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|play\\s+pandra|play\\s+panra|plat\\s+pandra|plat\\s+panra|podu|vei|kelu|song\\s+podu|songs|song|music|paatu|paattu)\\s*$", "")
                         .trim();
                 return new ChatResult(SystemController.playSpotify(songQuery), "jarvis_spotify", 1.0);
-            } else if (isYouTube || lower.startsWith("play ")) {
+            } else if (isSongRequest) {
                 String songQuery = message.trim()
-                        .replaceAll("(?i)^(?:play|listen to|start|put)\\s+", "")
+                        .replaceAll("(?i)^(?:play|listen to|start|put|play a|ethachum|ethavathu|oru|nalla|konjam)\\s+", "")
                         .replaceAll("(?i)\\s+(?:on|in|from)\\s+youtube", "")
                         .replaceAll("(?i)\\s*youtube(?:\\s+la)?\\s*", "")
-                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|podu|vei|kelu|song\\s+podu|song)\\s*$", "")
+                        .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|play\\s+pandra|play\\s+panra|plat\\s+pandra|plat\\s+panra|podu|vei|kelu|song\\s+podu|songs|song|music|paatu|paattu)\\s*$", "")
                         .trim();
+                if (songQuery.isEmpty() || songQuery.equalsIgnoreCase("songs") || songQuery.equalsIgnoreCase("music")) {
+                    songQuery = "top hits songs";
+                }
                 return new ChatResult(SystemController.playYouTube(songQuery), "jarvis_play", 1.0);
             }
             return new ChatResult(formatDynamicResponse(fallbackResponse, message), "fallback", 0.0);

@@ -210,21 +210,31 @@ public class SystemController {
         }
     }
 
-    /** Opens a URL in the user's default browser. */
+    /** Opens a URL in Google Chrome (active browser) or falls back to system browser. */
     public static String openUrl(String url) {
         if (url == null || url.isBlank()) return "URL cannot be empty.";
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "https://" + url;
         }
         try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            boolean hasChrome = new File("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe").exists()
+                    || new File("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe").exists();
+            if (hasChrome) {
+                new ProcessBuilder("cmd.exe", "/c", "start", "chrome", url).start();
+                activateAppWindow("Chrome");
+            } else if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(URI.create(url));
             } else {
                 new ProcessBuilder("cmd.exe", "/c", "start", "", url).start();
             }
             return "Opening link in your browser.";
         } catch (Exception e) {
-            return "Could not open URL: " + e.getMessage();
+            try {
+                new ProcessBuilder("cmd.exe", "/c", "start", "", url).start();
+                return "Opening link in your browser.";
+            } catch (Exception ex) {
+                return "Could not open URL: " + ex.getMessage();
+            }
         }
     }
 
@@ -245,8 +255,12 @@ public class SystemController {
             return openUrl("https://www.youtube.com");
         }
         String cleanQuery = query.trim();
-        String searchQuery = cleanQuery.replaceAll("(?i)^(?:play|put|search|start|listen to)\\s+", "").trim();
-        if (searchQuery.isEmpty()) searchQuery = cleanQuery;
+        String searchQuery = cleanQuery.replaceAll("(?i)^(?:play|put|search|start|listen to|play a|ethachum|ethavathu|oru|nalla|konjam)\\s+", "")
+                .replaceAll("(?i)\\s*(?:play\\s+pannu|play\\s+panu|play\\s+pandra|play\\s+panra|plat\\s+pandra|plat\\s+panra|podu|vei|kelu|song\\s+podu|songs|song|music|paatu|paattu)\\s*$", "")
+                .trim();
+        if (searchQuery.isEmpty() || searchQuery.equalsIgnoreCase("songs") || searchQuery.equalsIgnoreCase("music")) {
+            searchQuery = cleanQuery;
+        }
 
         try {
             String encoded = URLEncoder.encode(searchQuery, StandardCharsets.UTF_8);
@@ -274,6 +288,19 @@ public class SystemController {
                     String videoId = matcher.group(1);
                     String watchUrl = "https://www.youtube.com/watch?v=" + videoId + "&autoplay=1";
                     openUrl(watchUrl);
+
+                    // Background thread: activate Chrome and press Space to trigger playback
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(2200);
+                            activateAppWindow("Chrome");
+                            Thread.sleep(400);
+                            Robot robot = new Robot();
+                            robot.keyPress(KeyEvent.VK_SPACE);
+                            robot.keyRelease(KeyEvent.VK_SPACE);
+                        } catch (Exception ignored) {}
+                    }).start();
+
                     return "Playing \"" + cleanQuery + "\" directly on YouTube, Sir! 🎶";
                 }
             }
