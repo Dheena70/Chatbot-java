@@ -87,6 +87,12 @@ public class ChatEngineTest {
         ChatEngine.ChatResult filRes = engine.getResponse("open filmora");
         check("open filmora matches 'jarvis_filmora'", "jarvis_filmora", filRes.intent);
 
+        ChatEngine.ChatResult agRes = engine.getResponse("open antigravity");
+        check("open antigravity matches 'jarvis_antigravity'", "jarvis_antigravity", agRes.intent);
+
+        ChatEngine.ChatResult unnaRes = engine.getResponse("unna open pannu");
+        check("unna open pannu matches 'jarvis_antigravity'", "jarvis_antigravity", unnaRes.intent);
+
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
         if (failed > 0) {

@@ -235,6 +235,12 @@ public class ChatEngine {
         if (response.contains("{close_chrome}")) {
             response = response.replace("{close_chrome}", SystemController.closeApp("chrome"));
         }
+        if (response.contains("{antigravity}")) {
+            response = response.replace("{antigravity}", SystemController.launchApp("antigravity"));
+        }
+        if (response.contains("{close_antigravity}")) {
+            response = response.replace("{close_antigravity}", SystemController.closeApp("antigravity"));
+        }
         if (response.contains("{whatsapp}")) {
             response = response.replace("{whatsapp}", SystemController.launchApp("whatsapp"));
         }

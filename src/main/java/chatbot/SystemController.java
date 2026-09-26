@@ -64,6 +64,10 @@ public class SystemController {
         APP_ALIASES.put("instagram", "shell:AppsFolder\\Facebook.InstagramBeta_8xx8rvfyw5nnt!App");
 
         // Developer Tools & AI
+        APP_ALIASES.put("antigravity", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
+        APP_ALIASES.put("antigravity ide", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
+        APP_ALIASES.put("unna", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
+        APP_ALIASES.put("yourself", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
         APP_ALIASES.put("chatgpt", "shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App");
         APP_ALIASES.put("perplexity", "shell:AppsFolder\\com.todesktop.25020447d4kq915");
         APP_ALIASES.put("vs code", "code");
@@ -525,6 +529,10 @@ public class SystemController {
             case "taskmgr":
             case "task manager": procName = "taskmgr"; break;
             case "whatsapp": procName = "WhatsApp*"; break;
+            case "antigravity":
+            case "antigravity ide":
+            case "unna":
+            case "yourself": procName = "*Antigravity*"; break;
             case "telegram": procName = "Telegram*"; break;
             case "instagram": procName = "Instagram*"; break;
             case "chatgpt": procName = "ChatGPT*"; break;
