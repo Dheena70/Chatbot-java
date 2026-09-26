@@ -157,6 +157,12 @@ public class ChatbotServer {
                 String actionExecuted = null;
                 if (result.intent != null && result.intent.startsWith("jarvis_")) {
                     actionExecuted = result.intent.replace("jarvis_", "");
+                    if ("screenshot".equals(actionExecuted)) {
+                        String target = ChatEngine.extractScreenshotTarget(message);
+                        if (target != null && !target.isBlank()) {
+                            actionExecuted = "Screenshot: " + target;
+                        }
+                    }
                 }
 
                 // If AI replied with an [ACTION:...] tag, execute it!
@@ -540,8 +546,8 @@ public class ChatbotServer {
                 actionName = "Volume: " + param;
                 break;
             case "screenshot":
-                executionResult = SystemController.captureScreenshot();
-                actionName = "Screenshot Captured";
+                executionResult = SystemController.captureScreenshot(param);
+                actionName = (param != null && !param.isBlank()) ? "Screenshot: " + param : "Screenshot Captured";
                 break;
             case "lock":
                 executionResult = SystemController.lockWorkstation();

@@ -315,16 +315,91 @@ public class SystemController {
                 + (totalMemory - freeMemory) + " MB used / " + maxMemory + " MB max allocated.";
     }
 
-    /** Captures a full-screen screenshot, saves it to the Desktop, and opens it. */
-    public static String captureScreenshot() {
+    /** Focuses the browser window if open (Chrome or Edge). */
+    private static void activateBrowserWindow() {
         try {
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-Command",
+                    "$ws = New-Object -ComObject WScript.Shell; $ws.AppActivate('Chrome'); $ws.AppActivate('Edge')")
+                    .start();
+        } catch (Exception ignored) {}
+    }
+
+    /** Focuses a specific application window by name or alias. */
+    private static void activateAppWindow(String appName) {
+        if (appName == null || appName.isBlank()) return;
+        try {
+            String clean = appName.trim().replaceAll("['\"]", "");
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-Command",
+                    "$ws = New-Object -ComObject WScript.Shell; $ws.AppActivate('" + clean + "')")
+                    .start();
+        } catch (Exception ignored) {}
+    }
+
+    /**
+     * Captures a screenshot of a specific target (app, website, window, or desktop),
+     * saves it to the Desktop, and opens it.
+     */
+    public static String captureScreenshot(String target) {
+        try {
+            String cleanTarget = (target != null) ? target.trim().toLowerCase() : "";
+            String targetLabel = "Screen";
+
+            if (!cleanTarget.isEmpty() && !cleanTarget.equals("screen") && !cleanTarget.equals("full") && !cleanTarget.equals("fullscreen")) {
+                if (cleanTarget.equals("desktop") || cleanTarget.contains("desktop")) {
+                    targetLabel = "Desktop";
+                    simulateHotkey("win+d");
+                    Thread.sleep(800);
+                } else if (cleanTarget.contains("previous") || cleanTarget.contains("background") || cleanTarget.contains("behind")) {
+                    targetLabel = "Window";
+                    simulateHotkey("alt+tab");
+                    Thread.sleep(600);
+                } else if (cleanTarget.contains("youtube") || cleanTarget.contains("you tube")) {
+                    targetLabel = "YouTube";
+                    String query = cleanTarget.replace("youtube", "").replace("you tube", "").trim();
+                    if (!query.isEmpty() && !query.equals("on") && !query.equals("of") && !query.equals("in")) {
+                        searchYouTube(query);
+                    } else {
+                        openUrl("https://www.youtube.com");
+                    }
+                    Thread.sleep(2800);
+                    activateBrowserWindow();
+                    Thread.sleep(400);
+                } else if (cleanTarget.contains("google")) {
+                    targetLabel = "Google";
+                    String query = cleanTarget.replace("google", "").trim();
+                    if (!query.isEmpty() && !query.equals("on") && !query.equals("of") && !query.equals("in")) {
+                        searchGoogle(query);
+                    } else {
+                        openUrl("https://www.google.com");
+                    }
+                    Thread.sleep(2500);
+                    activateBrowserWindow();
+                    Thread.sleep(400);
+                } else if (cleanTarget.startsWith("http://") || cleanTarget.startsWith("https://")
+                        || cleanTarget.contains(".com") || cleanTarget.contains(".org") || cleanTarget.contains(".net") || cleanTarget.contains(".io")) {
+                    targetLabel = "Web";
+                    openUrl(cleanTarget);
+                    Thread.sleep(2800);
+                    activateBrowserWindow();
+                    Thread.sleep(400);
+                } else {
+                    // Application target (e.g. notepad, calc, paint, code, cmd, whatsapp, spotify, etc.)
+                    targetLabel = cleanTarget.substring(0, 1).toUpperCase() + (cleanTarget.length() > 1 ? cleanTarget.substring(1) : "");
+                    launchApp(cleanTarget);
+                    Thread.sleep(1800);
+                    activateAppWindow(cleanTarget);
+                    Thread.sleep(400);
+                }
+            }
+
             Robot robot = new Robot();
             Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
             BufferedImage screenCapture = robot.createScreenCapture(screenRect);
 
             String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
             String desktopPath = System.getProperty("user.home") + "\\Desktop";
-            File outputFile = new File(desktopPath, "Screenshot_" + timeStamp + ".png");
+            String safeLabel = targetLabel.replaceAll("[^a-zA-Z0-9_]", "_");
+            File outputFile = new File(desktopPath, "Screenshot_" + safeLabel + "_" + timeStamp + ".png");
 
             ImageIO.write(screenCapture, "png", outputFile);
 
@@ -333,10 +408,19 @@ public class SystemController {
                 Desktop.getDesktop().open(outputFile);
             }
 
-            return "Screenshot captured and saved to your Desktop: " + outputFile.getName();
+            if (!cleanTarget.isEmpty() && !cleanTarget.equals("screen") && !cleanTarget.equals("full") && !cleanTarget.equals("fullscreen")) {
+                return "Screenshot of " + targetLabel + " captured and saved to your Desktop: " + outputFile.getName();
+            } else {
+                return "Screenshot captured and saved to your Desktop: " + outputFile.getName();
+            }
         } catch (Exception e) {
             return "Could not take screenshot: " + e.getMessage();
         }
+    }
+
+    /** Captures a full-screen screenshot, saves it to the Desktop, and opens it. */
+    public static String captureScreenshot() {
+        return captureScreenshot(null);
     }
 
     /** Creates a quick text note on the Desktop and opens it in Notepad. */

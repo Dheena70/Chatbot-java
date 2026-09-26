@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -137,17 +138,21 @@ public class ChatEngine {
         }
 
         if (bestIntent == null) {
-            return new ChatResult(formatDynamicResponse(fallbackResponse), "fallback", 0.0);
+            return new ChatResult(formatDynamicResponse(fallbackResponse, message), "fallback", 0.0);
         }
 
         int wordCount = Math.max(1, normalized.split("\\s+").length);
         double confidence = Math.min(1.0, bestScore / wordCount);
         confidence = Math.round(confidence * 100.0) / 100.0;
-        return new ChatResult(formatDynamicResponse(bestIntent.pickResponse()), bestIntent.name, confidence);
+        return new ChatResult(formatDynamicResponse(bestIntent.pickResponse(), message), bestIntent.name, confidence);
     }
 
     /** Replaces dynamic tokens like {time}, {battery}, {disk}, or system actions with live values and execution. */
     public static String formatDynamicResponse(String response) {
+        return formatDynamicResponse(response, null);
+    }
+
+    public static String formatDynamicResponse(String response, String userMessage) {
         if (response == null) return null;
         if (response.contains("{time}")) {
             ZonedDateTime now = ZonedDateTime.now();
@@ -164,7 +169,8 @@ public class ChatEngine {
             response = response.replace("{sysinfo}", SystemController.getSystemInfo());
         }
         if (response.contains("{screenshot}")) {
-            response = response.replace("{screenshot}", SystemController.captureScreenshot());
+            String target = extractScreenshotTarget(userMessage);
+            response = response.replace("{screenshot}", SystemController.captureScreenshot(target));
         }
         if (response.contains("{vol_up}")) {
             response = response.replace("{vol_up}", SystemController.changeVolume("up"));
@@ -303,5 +309,54 @@ public class ChatEngine {
         if (text == null || pattern == null || pattern.isEmpty()) return false;
         String regex = "(?<![a-z0-9])" + Pattern.quote(pattern) + "(?![a-z0-9])";
         return Pattern.compile(regex).matcher(text).find();
+    }
+
+    /**
+     * Extracts screenshot target (app, site, window, desktop) from user message.
+     * Supports patterns like "take screenshot on youtube", "screenshot of notepad",
+     * "youtube screenshot", "youtube la screenshot", etc.
+     */
+    public static String extractScreenshotTarget(String message) {
+        if (message == null || message.isBlank()) return null;
+        String lower = message.toLowerCase().trim();
+
+        if (lower.contains("screenshot") || lower.contains("screen shot") || lower.contains("capture screen") || lower.contains("snap screen")) {
+            if (lower.contains("youtube") || lower.contains("you tube")) return "youtube";
+            if (lower.contains("google")) return "google";
+            if (lower.contains("desktop") || lower.contains("home screen")) return "desktop";
+            if (lower.contains("notepad") || lower.contains("notes")) return "notepad";
+            if (lower.contains("calc") || lower.contains("calculator")) return "calculator";
+            if (lower.contains("paint") || lower.contains("mspaint")) return "paint";
+            if (lower.contains("chrome") || lower.contains("browser")) return "chrome";
+            if (lower.contains("edge")) return "edge";
+            if (lower.contains("cmd") || lower.contains("command prompt")) return "cmd";
+            if (lower.contains("powershell") || lower.contains("terminal")) return "powershell";
+            if (lower.contains("vscode") || lower.contains("vs code") || lower.contains("code")) return "code";
+            if (lower.contains("whatsapp")) return "whatsapp";
+            if (lower.contains("telegram")) return "telegram";
+            if (lower.contains("instagram")) return "instagram";
+            if (lower.contains("spotify")) return "spotify";
+            if (lower.contains("vlc")) return "vlc";
+            if (lower.contains("word")) return "word";
+            if (lower.contains("excel")) return "excel";
+            if (lower.contains("powerpoint") || lower.contains("ppt")) return "powerpoint";
+            if (lower.contains("canva")) return "canva";
+            if (lower.contains("filmora")) return "filmora";
+            if (lower.contains("anydesk")) return "anydesk";
+            if (lower.contains("antigravity")) return "antigravity";
+            if (lower.contains("taskmgr") || lower.contains("task manager")) return "taskmgr";
+            if (lower.contains("previous") || lower.contains("background") || lower.contains("behind")) return "previous";
+
+            // Extract pattern "on <target>", "of <target>", "in <target>"
+            Pattern p = Pattern.compile("(?:on|of|in|for|at)\\s+([a-zA-Z0-9_\\-\\.]+)");
+            Matcher m = p.matcher(lower);
+            if (m.find()) {
+                String candidate = m.group(1).trim();
+                if (!candidate.equals("my") && !candidate.equals("the") && !candidate.equals("this") && !candidate.equals("screen")) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
     }
 }
