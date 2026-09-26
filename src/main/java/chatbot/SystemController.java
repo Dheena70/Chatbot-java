@@ -66,8 +66,6 @@ public class SystemController {
         // Developer Tools & AI
         APP_ALIASES.put("antigravity", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
         APP_ALIASES.put("antigravity ide", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
-        APP_ALIASES.put("unna", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
-        APP_ALIASES.put("yourself", "C:\\Users\\ELCOT\\AppData\\Local\\Programs\\antigravity\\Antigravity.exe");
         APP_ALIASES.put("chatgpt", "shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App");
         APP_ALIASES.put("perplexity", "shell:AppsFolder\\com.todesktop.25020447d4kq915");
         APP_ALIASES.put("vs code", "code");
@@ -530,9 +528,7 @@ public class SystemController {
             case "task manager": procName = "taskmgr"; break;
             case "whatsapp": procName = "WhatsApp*"; break;
             case "antigravity":
-            case "antigravity ide":
-            case "unna":
-            case "yourself": procName = "*Antigravity*"; break;
+            case "antigravity ide": procName = "*Antigravity*"; break;
             case "telegram": procName = "Telegram*"; break;
             case "instagram": procName = "Instagram*"; break;
             case "chatgpt": procName = "ChatGPT*"; break;
@@ -601,6 +597,55 @@ public class SystemController {
             return "Display turned off, Sir.";
         } catch (IOException e) {
             return "Failed to turn off screen: " + e.getMessage();
+        }
+    }
+
+    /** Sets a countdown timer with background chime and visual popup alert. */
+    public static String setTimer(int seconds, String label) {
+        if (seconds <= 0) seconds = 60;
+        String cleanLabel = (label == null || label.isBlank()) ? "Timer Alert" : label.trim();
+        try {
+            String ps = "$sec = " + seconds + ";\n"
+                    + "Start-Sleep -Seconds $sec;\n"
+                    + "[System.Media.SystemSounds]::Exclamation.Play();\n"
+                    + "(New-Object -ComObject Wscript.Shell).Popup('" + cleanLabel.replace("'", "''") + "', 0, 'JARVIS Timer Alert', 64);\n";
+            String encoded = Base64.getEncoder().encodeToString(ps.getBytes(StandardCharsets.UTF_16LE));
+            new ProcessBuilder("powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-EncodedCommand", encoded).start();
+            return "Timer set for " + seconds + " seconds (" + cleanLabel + "), Sir.";
+        } catch (Exception e) {
+            return "Failed to set timer: " + e.getMessage();
+        }
+    }
+
+    /** Opens Windows Clock / Alarm app for the user. */
+    public static String setAlarm(String timeStr, String label) {
+        String cleanLabel = (label == null || label.isBlank()) ? "Alarm" : label.trim();
+        try {
+            new ProcessBuilder("explorer.exe", "ms-clock:alarm").start();
+            return "Windows Alarms & Clock opened for " + (timeStr != null ? timeStr : "your alarm") + " (" + cleanLabel + "), Sir.";
+        } catch (Exception e) {
+            return "Failed to open Clock app: " + e.getMessage();
+        }
+    }
+
+    /** Opens WhatsApp Desktop with drafted message ready to send. */
+    public static String sendWhatsApp(String target, String message) {
+        if (message == null || message.isBlank()) {
+            return "Please specify the message content to send, Sir.";
+        }
+        try {
+            String cleanTarget = target != null ? target.replaceAll("[^0-9+]", "") : "";
+            String encodedMsg = URLEncoder.encode(message, StandardCharsets.UTF_8).replace("+", "%20");
+            String uri;
+            if (!cleanTarget.isEmpty()) {
+                uri = "whatsapp://send?phone=" + cleanTarget + "&text=" + encodedMsg;
+            } else {
+                uri = "whatsapp://send?text=" + encodedMsg;
+            }
+            new ProcessBuilder("explorer.exe", uri).start();
+            return "WhatsApp opened with your drafted message for " + (cleanTarget.isEmpty() ? (target != null ? target : "recipient") : cleanTarget) + ", Sir.";
+        } catch (Exception e) {
+            return "Failed to dispatch WhatsApp message: " + e.getMessage();
         }
     }
 }

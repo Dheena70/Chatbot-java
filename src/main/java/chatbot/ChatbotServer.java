@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -156,6 +157,30 @@ public class ChatbotServer {
                     ActionResult ar = executeJarvisAction(reply);
                     reply = ar.cleanedReply;
                     actionExecuted = ar.actionName;
+
+                    // Autonomous Self-Healing: If action failed, attempt automated diagnosis and fix!
+                    if (ar.isFailure && aiClient.isConfigured()) {
+                        System.out.println("Self-Healing triggered for failed action: " + ar.actionName);
+                        try {
+                            String healPrompt = "SELF-HEALING ERROR ALERT: The user asked: \"" + message + "\".\n"
+                                    + "You attempted an action that FAILED with this error:\n\"" + ar.executionResult + "\"\n"
+                                    + "Please analyze the error, diagnose what failed on this Windows machine, and generate an autonomous FIX using a corrected [ACTION:powershell:...] or [ACTION:...] tag.\n"
+                                    + "Execute the correction immediately so the user's task succeeds!";
+                            List<AiClient.Turn> healHistory = new ArrayList<>(sessionHistory.getOrDefault(sessionId, new ArrayDeque<>()));
+                            String healedReply = aiClient.ask(healPrompt, healHistory);
+                            if (healedReply != null && healedReply.contains("[ACTION:")) {
+                                ActionResult healedAr = executeJarvisAction(healedReply);
+                                if (!healedAr.isFailure) {
+                                    reply = "I detected an issue on the initial attempt, but I automatically self-healed and completed your task, Sir!\n\n" + healedAr.cleanedReply;
+                                    actionExecuted = healedAr.actionName + " (Self-Healed)";
+                                } else {
+                                    reply = "I attempted to self-heal the issue, but encountered: " + healedAr.executionResult;
+                                }
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Self-healing error: " + e.getMessage());
+                        }
+                    }
                 }
 
                 recordTurn(sessionId, message, reply);
@@ -388,9 +413,18 @@ public class ChatbotServer {
     private static class ActionResult {
         final String cleanedReply;
         final String actionName;
-        ActionResult(String cleanedReply, String actionName) {
+        final String executionResult;
+        final boolean isFailure;
+
+        ActionResult(String cleanedReply, String actionName, String executionResult, boolean isFailure) {
             this.cleanedReply = cleanedReply;
             this.actionName = actionName;
+            this.executionResult = executionResult;
+            this.isFailure = isFailure;
+        }
+
+        ActionResult(String cleanedReply, String actionName) {
+            this(cleanedReply, actionName, "", false);
         }
     }
 
@@ -492,6 +526,30 @@ public class ChatbotServer {
                 executionResult = SystemController.turnOffScreen();
                 actionName = "Screen Turned Off";
                 break;
+            case "set_timer":
+                String[] timerParts = param.split("\\|", 2);
+                int sec = 60;
+                try {
+                    sec = Integer.parseInt(timerParts[0].trim());
+                } catch (Exception ignored) {}
+                String timerLabel = timerParts.length > 1 ? timerParts[1].trim() : "Timer Alert";
+                executionResult = SystemController.setTimer(sec, timerLabel);
+                actionName = "Timer: " + sec + "s";
+                break;
+            case "set_alarm":
+                String[] alarmParts = param.split("\\|", 2);
+                String alarmTime = alarmParts[0].trim();
+                String alarmLabel = alarmParts.length > 1 ? alarmParts[1].trim() : "Alarm";
+                executionResult = SystemController.setAlarm(alarmTime, alarmLabel);
+                actionName = "Alarm: " + alarmTime;
+                break;
+            case "send_whatsapp":
+                String[] waParts = param.split("\\|", 2);
+                String waTarget = waParts[0].trim();
+                String waMsg = waParts.length > 1 ? waParts[1].trim() : "";
+                executionResult = SystemController.sendWhatsApp(waTarget, waMsg);
+                actionName = "WhatsApp Message Sent";
+                break;
             default:
                 break;
         }
@@ -504,6 +562,15 @@ public class ChatbotServer {
             }
         }
 
-        return new ActionResult(cleanedReply, actionName);
+        boolean isFailure = executionResult != null && (
+                executionResult.startsWith("Failed") ||
+                executionResult.startsWith("Could not") ||
+                executionResult.startsWith("Error:") ||
+                executionResult.contains("Command failed") ||
+                executionResult.contains("TerminatingError") ||
+                executionResult.contains("is not recognized")
+        );
+
+        return new ActionResult(cleanedReply, actionName, executionResult, isFailure);
     }
 }

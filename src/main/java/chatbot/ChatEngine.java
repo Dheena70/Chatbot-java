@@ -241,6 +241,12 @@ public class ChatEngine {
         if (response.contains("{close_antigravity}")) {
             response = response.replace("{close_antigravity}", SystemController.closeApp("antigravity"));
         }
+        if (response.contains("{alarm}")) {
+            response = response.replace("{alarm}", SystemController.setAlarm(null, "Alarm"));
+        }
+        if (response.contains("{timer}")) {
+            response = response.replace("{timer}", SystemController.setTimer(60, "Timer Alert"));
+        }
         if (response.contains("{whatsapp}")) {
             response = response.replace("{whatsapp}", SystemController.launchApp("whatsapp"));
         }

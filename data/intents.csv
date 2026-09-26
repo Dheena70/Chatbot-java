@@ -37,8 +37,10 @@ jarvis_screen_off,turn off screen|turn off display|screen off|monitor off|displa
 jarvis_close_notepad,close notepad|turn off notepad|exit notepad|notepad moodu|notepad-a close pannu,{close_notepad}
 jarvis_close_calc,close calculator|close calc|turn off calculator|calc moodu,{close_calc}
 jarvis_close_chrome,close chrome|turn off chrome|exit chrome|chrome-a moodu,{close_chrome}
-jarvis_antigravity,open antigravity|launch antigravity|start antigravity|antigravity open|antigravity open pannu|unna open pannu|open unna|antigravity-a open pannu|open antigravity ide,{antigravity}
+jarvis_antigravity,open antigravity|launch antigravity|start antigravity|antigravity open|antigravity open pannu|antigravity-a open pannu|open antigravity ide,{antigravity}
 jarvis_close_antigravity,close antigravity|exit antigravity|quit antigravity|antigravity moodu|antigravity-a moodu|antigravity close pannu,{close_antigravity}
+jarvis_alarm,set alarm|set an alarm|open alarm|open clock|alarm vekku|alarm set pannu|alarm,{alarm}
+jarvis_timer,set timer|set a timer|timer vekku|timer set pannu|start timer|timer,{timer}
 jarvis_whatsapp,open whatsapp|launch whatsapp|start whatsapp|whatsapp open|whatsapp open pannu,{whatsapp}
 jarvis_telegram,open telegram|launch telegram|start telegram|telegram open|telegram open pannu,{telegram}
 jarvis_instagram,open instagram|launch instagram|start instagram|instagram open|instagram open pannu,{instagram}

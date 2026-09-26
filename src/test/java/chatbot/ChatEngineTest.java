@@ -90,8 +90,11 @@ public class ChatEngineTest {
         ChatEngine.ChatResult agRes = engine.getResponse("open antigravity");
         check("open antigravity matches 'jarvis_antigravity'", "jarvis_antigravity", agRes.intent);
 
-        ChatEngine.ChatResult unnaRes = engine.getResponse("unna open pannu");
-        check("unna open pannu matches 'jarvis_antigravity'", "jarvis_antigravity", unnaRes.intent);
+        ChatEngine.ChatResult alarmRes = engine.getResponse("set alarm");
+        check("set alarm matches 'jarvis_alarm'", "jarvis_alarm", alarmRes.intent);
+
+        ChatEngine.ChatResult timerRes = engine.getResponse("set timer");
+        check("set timer matches 'jarvis_timer'", "jarvis_timer", timerRes.intent);
 
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
