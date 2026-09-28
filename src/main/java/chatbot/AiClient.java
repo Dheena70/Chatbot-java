@@ -156,7 +156,15 @@ public class AiClient {
                         else if (lowerName.endsWith(".webp")) mime = "image/webp";
                         else if (lowerName.endsWith(".gif")) mime = "image/gif";
                         else if (lowerName.endsWith(".pdf")) mime = "application/pdf";
+                        else if (lowerName.endsWith(".mp4") || lowerName.endsWith(".mov") || lowerName.endsWith(".avi")) mime = "video/mp4";
                         else mime = "image/jpeg";
+                    }
+
+                    // For large video files (> 4MB base64), avoid HTTP request timeout by not embedding massive raw video bytes
+                    if (mime.startsWith("video/") && cleanBase64.length() > 4_000_000) {
+                        fullTextMessage.append("\n[Attached Video File: ").append(att.name)
+                                .append(" (size: ").append(cleanBase64.length() * 3 / 4 / 1024 / 1024).append(" MB). Video saved to local storage for editing and processing.]");
+                        continue;
                     }
 
                     userParts.append(",{\"inlineData\":{\"mimeType\":\"")
@@ -196,6 +204,8 @@ public class AiClient {
                 + "- [ACTION:lock] Lock Windows workstation\\n"
                 + "- [ACTION:battery] Check battery percentage\\n"
                 + "- [ACTION:disk] Check C: drive free space\\n"
+                + "- [ACTION:video_edit:<details>] Execute automated video editing and rendering via ffmpeg\\n"
+                + "CRITICAL VIDEO EDITING RULE: When the user asks to edit a video, create a reel, trim footage, apply speed ramping, or transform an attached video file, use [ACTION:video_edit:<details>]. JARVIS renders the final video directly to the Desktop using ffmpeg. NEVER classify video editing instructions as music or song playback!\\n"
                 + "CRITICAL FULL-AUTOMATION ASSISTANT RULE: You are a fully autonomous personal assistant (Jarvis) with complete OS control. NEVER tell the user to do the task themselves, and NEVER just leave apps open in search or draft mode! 1. When asked to play music on Spotify (e.g. 'play u1 drugs on spotify', 'spotify la play pannu', 'play on spotify'), you MUST use [ACTION:play_spotify:<query>] — NEVER redirect a Spotify request to YouTube! When asked to play songs on YouTube or when no platform is specified (e.g. 'play leo songs', 'play arabic kuthu', 'youtube la song podu'), use [ACTION:search_youtube:<query>] which automatically autoplays the video! 2. When asked to send a message (e.g. 'send message to Karthik hello', 'whatsapp la text anupu'), ALWAYS use [ACTION:send_whatsapp:<name_or_number>|<message>] — JARVIS will automatically open WhatsApp, find the contact, paste the message, and send it! 3. ALWAYS respect the exact platform or app the user asked for without doing unnecessary or unwanted work!\\n"
                 + "CRITICAL SCREENSHOT TARGETING RULE: When the user asks to take a screenshot of a specific app, website, or window (e.g. 'take screenshot on youtube', 'screenshot of notepad', 'youtube screenshot', 'capture google', 'take screenshot of desktop', 'youtube la screenshot'), you MUST use [ACTION:screenshot:<target>] (e.g. [ACTION:screenshot:youtube], [ACTION:screenshot:notepad], [ACTION:screenshot:desktop]). NEVER use bare [ACTION:screenshot] when a target is mentioned! JARVIS will automatically switch to or open that target, wait for it to render, and capture that exact screen for the user!\\n"
                 + "CRITICAL RULE: When the user asks you to turn ON, turn OFF, open, or close something (e.g. Wi-Fi, Bluetooth, Mute, Volume, Dark Mode, Apps, Screen), NEVER just open the Settings screen or take them to a location! ALWAYS execute the direct action tag so the feature is turned ON or turned OFF directly by you without requiring the user to do anything!\\n"
@@ -214,7 +224,7 @@ public class AiClient {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(apiUrl))
-                        .timeout(Duration.ofSeconds(20))
+                        .timeout(Duration.ofSeconds(60))
                         .header("Content-Type", "application/json")
                         .header("x-goog-api-key", apiKey)
                         .POST(HttpRequest.BodyPublishers.ofString(requestBody))

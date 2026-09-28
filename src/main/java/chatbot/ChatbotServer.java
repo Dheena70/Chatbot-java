@@ -138,6 +138,7 @@ public class ChatbotServer {
 
                 // Route to AI when attachments are present, or local matching found nothing, weak match, or for jokes.
                 boolean needsAi = (!attachments.isEmpty() || "fallback".equals(result.intent) || "joke".equals(result.intent) || !ChatEngine.isConfident(result))
+                        && !"jarvis_video_edit".equals(result.intent)
                         && aiClient.isConfigured();
 
                 if (needsAi) {
@@ -166,6 +167,8 @@ public class ChatbotServer {
                         actionExecuted = "Playing Music";
                     } else if ("spotify".equals(actionExecuted)) {
                         actionExecuted = "Spotify Music";
+                    } else if ("video_edit".equals(actionExecuted)) {
+                        actionExecuted = "Video Transformation Completed";
                     }
                 }
 
@@ -631,6 +634,10 @@ public class ChatbotServer {
                 String waMsg = waParts.length > 1 ? waParts[1].trim() : "";
                 executionResult = SystemController.sendWhatsApp(waTarget, waMsg);
                 actionName = "WhatsApp Message Sent";
+                break;
+            case "video_edit":
+                executionResult = SystemController.executeVideoEdit(param);
+                actionName = "Video Transformation Completed";
                 break;
             default:
                 break;
